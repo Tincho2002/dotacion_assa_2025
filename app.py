@@ -361,11 +361,13 @@ if uploaded_file is not None:
             display_var_table = periodo_var_counts.copy()
             display_var_table['Variacion_%'] = display_var_table['Variacion_%'].map('{:.2f}%'.format, na_action='ignore')
             
-            # **MODIFICACIÓN 1: Mostrar cantidades como enteros**
+            # **MODIFICACIÓN 1: Mostrar cantidades como enteros y limpiar para display**
             for col in ['Cantidad_Mes_Anterior', 'Variacion_Cantidad']:
-                display_var_table[col] = pd.to_numeric(display_var_table[col], errors='coerce').astype('Int64')
-
-            display_var_table = display_var_table.fillna('').astype(str).replace('<NA>', '')
+                # Convertir a Int64 para manejar nulos, luego a string para el display limpio
+                display_var_table[col] = pd.to_numeric(display_var_table[col], errors='coerce').astype('Int64').astype(str).replace('<NA>', '')
+            
+            # Llenar cualquier nulo restante (ej. en la columna de porcentaje)
+            display_var_table = display_var_table.fillna('')
             
             st.dataframe(display_var_table)
             generate_download_buttons(display_var_table, 'variacion_mensual_total')
@@ -512,4 +514,5 @@ if uploaded_file is not None:
 
 else:
     st.info("⬆️ Esperando a que se suba un archivo Excel para comenzar el análisis.")
+
 
