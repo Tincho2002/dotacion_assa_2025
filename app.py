@@ -284,7 +284,7 @@ if uploaded_file is not None:
         "📋 Datos Brutos"
     ])
 
-    # --- PESTAÑA 1: RESUMEN ---
+    # --- PESTAÑA 1: RESUMEN (MODIFICADA) ---
     with tab1:
         st.header('Resumen General de la Dotación')
         if filtered_df.empty:
@@ -292,13 +292,19 @@ if uploaded_file is not None:
         else:
             st.metric(label="Total de Empleados (filtrado)", value=len(filtered_df))
             
-            # --- Dotación por Periodo ---
+            # --- Dotación por Periodo (Total) ---
             st.subheader('Dotación por Periodo (Total)')
             periodo_counts = filtered_df['Periodo'].value_counts().reset_index()
             periodo_counts.columns = ['Periodo', 'Cantidad']
+            
+            # **MODIFICACIÓN 1: Ajuste de escala del gráfico**
+            min_val = periodo_counts['Cantidad'].min()
+            max_val = periodo_counts['Cantidad'].max()
+            padding = (max_val - min_val) * 0.1 # Añade un 10% de espacio
+            
             chart_periodo = alt.Chart(periodo_counts).mark_bar().encode(
                 x=alt.X('Periodo', sort=all_periodos),
-                y='Cantidad',
+                y=alt.Y('Cantidad', scale=alt.Scale(domain=[min_val - padding, max_val + padding])),
                 color=alt.Color('Periodo', legend=None),
                 tooltip=['Periodo', 'Cantidad']
             ).properties(title='Dotación Total por Periodo')
@@ -318,8 +324,11 @@ if uploaded_file is not None:
                 tooltip=['Periodo', 'Sexo', 'Cantidad']
             ).properties(title='Distribución por Sexo por Periodo')
             st.altair_chart(chart_sexo, use_container_width=True)
-            st.dataframe(sexo_counts)
-            generate_download_buttons(sexo_counts, 'distribucion_sexo_por_periodo')
+            
+            # **MODIFICACIÓN 2: Tabla pivotada para Sexo**
+            sexo_pivot = sexo_counts.pivot_table(index='Periodo', columns='Sexo', values='Cantidad', fill_value=0).reset_index()
+            st.dataframe(sexo_pivot)
+            generate_download_buttons(sexo_pivot, 'distribucion_sexo_por_periodo')
             st.markdown('---')
 
             # --- Distribución por Relación por Periodo ---
@@ -333,8 +342,11 @@ if uploaded_file is not None:
                 tooltip=['Periodo', 'Relación', 'Cantidad']
             ).properties(title='Distribución por Relación por Periodo')
             st.altair_chart(chart_relacion, use_container_width=True)
-            st.dataframe(relacion_counts)
-            generate_download_buttons(relacion_counts, 'distribucion_relacion_por_periodo')
+
+            # **MODIFICACIÓN 3: Tabla pivotada para Relación**
+            relacion_pivot = relacion_counts.pivot_table(index='Periodo', columns='Relación', values='Cantidad', fill_value=0).reset_index()
+            st.dataframe(relacion_pivot)
+            generate_download_buttons(relacion_pivot, 'distribucion_relacion_por_periodo')
             st.markdown('---')
 
             # --- Variación Mensual ---
@@ -343,14 +355,34 @@ if uploaded_file is not None:
             
             periodo_var_counts = filtered_df.groupby('Periodo').size().reset_index(name='Cantidad_Actual')
             periodo_var_counts['sort_key'] = periodo_var_counts['Periodo'].map(month_order_map)
-            periodo_var_counts = periodo_var_counts.sort_values('sort_key').drop(columns='sort_key')
+            periodo_var_counts = periodo_var_counts.sort_values('sort_key').drop(columns='sort_key').reset_index(drop=True)
             
             periodo_var_counts['Cantidad_Mes_Anterior'] = periodo_var_counts['Cantidad_Actual'].shift(1)
             periodo_var_counts['Variacion_Cantidad'] = periodo_var_counts['Cantidad_Actual'] - periodo_var_counts['Cantidad_Mes_Anterior']
             
-            st.dataframe(periodo_var_counts.fillna('N/A'))
-            generate_download_buttons(periodo_var_counts.fillna('N/A'), 'variacion_mensual_total')
+            # **MODIFICACIÓN 4a: Mostrar tabla sin NaN**
+            display_var_table = periodo_var_counts.copy()
+            st.dataframe(display_var_table.fillna('N/A'))
+            generate_download_buttons(display_var_table.fillna('N/A'), 'variacion_mensual_total')
             
+            # **MODIFICACIÓN 4b: Gráfico de Variación Mensual**
+            # Excluir la primera fila que no tiene variación
+            chart_data_var = periodo_var_counts.dropna(subset=['Variacion_Cantidad'])
+            
+            bar_chart_var = alt.Chart(chart_data_var).mark_bar().encode(
+                x=alt.X('Periodo', sort=all_periodos, title='Periodo'),
+                y=alt.Y('Variacion_Cantidad', title='Variación de Empleados'),
+                color=alt.condition(
+                    alt.datum.Variacion_Cantidad > 0,
+                    alt.value("green"),  # Color para valores positivos
+                    alt.value("red")    # Color para valores negativos
+                ),
+                tooltip=['Periodo', 'Variacion_Cantidad']
+            ).properties(
+                title='Variación Mensual de Dotación'
+            )
+            st.altair_chart(bar_chart_var, use_container_width=True)
+
     # --- PESTAÑA 2: EDAD Y ANTIGÜEDAD ---
     with tab_edad_antiguedad:
         st.header('Análisis de Edad y Antigüedad por Periodo')
@@ -417,3 +449,4 @@ if uploaded_file is not None:
 
 else:
     st.info("⬆️ Esperando a que se suba un archivo Excel para comenzar el análisis.")
+
