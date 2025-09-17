@@ -284,7 +284,7 @@ if uploaded_file is not None:
         "📋 Datos Brutos"
     ])
 
-    # --- PESTAÑA 1: RESUMEN (NO TOCAR) ---
+    # --- PESTAÑA 1: RESUMEN (MODIFICADA) ---
     with tab1:
         st.header('Resumen General de la Dotación')
         if filtered_df.empty:
@@ -358,7 +358,14 @@ if uploaded_file is not None:
             periodo_var_counts['Cantidad_Mes_Anterior'] = periodo_var_counts['Cantidad_Actual'].shift(1)
             periodo_var_counts['Variacion_Cantidad'] = periodo_var_counts['Cantidad_Actual'] - periodo_var_counts['Cantidad_Mes_Anterior']
             
-            display_var_table = periodo_var_counts.copy().fillna('')
+            # **NUEVO: Añadir columna de variación porcentual**
+            periodo_var_counts['Variacion_%'] = (periodo_var_counts['Variacion_Cantidad'] / periodo_var_counts['Cantidad_Mes_Anterior'] * 100)
+
+            display_var_table = periodo_var_counts.copy()
+            # Formatear el porcentaje después de copiar
+            display_var_table['Variacion_%'] = display_var_table['Variacion_%'].map('{:.2f}%'.format, na_action='ignore')
+            
+            display_var_table = display_var_table.fillna('')
             st.dataframe(display_var_table)
             generate_download_buttons(display_var_table, 'variacion_mensual_total')
             
@@ -372,13 +379,13 @@ if uploaded_file is not None:
                     alt.value("green"),
                     alt.value("red")
                 ),
-                tooltip=['Periodo', 'Variacion_Cantidad']
+                tooltip=['Periodo', 'Variacion_Cantidad', alt.Tooltip('Variacion_%', format='.2f')]
             ).properties(
                 title='Variación Mensual de Dotación'
             )
             st.altair_chart(bar_chart_var, use_container_width=True)
 
-    # --- PESTAÑA 2: EDAD Y ANTIGÜEDAD (MODIFICADA) ---
+    # --- PESTAÑA 2: EDAD Y ANTIGÜEDAD (NO TOCAR) ---
     with tab_edad_antiguedad:
         st.header('Análisis de Edad y Antigüedad por Periodo')
         if filtered_df.empty or not selected_periodos:
@@ -414,7 +421,6 @@ if uploaded_file is not None:
             else:
                 edad_table['% sobre Total Periodo'] = '0.00%'
 
-            # **NUEVO: Añadir fila de totales a la tabla de Edad**
             edad_table_display = edad_table.reset_index()
             total_row_edad_values = {col: edad_table_display[col].sum() for col in edad_table_display.columns if col not in ['Rango Edad', '% sobre Total Periodo']}
             total_row_edad_values['Rango Edad'] = 'Total'
@@ -444,7 +450,6 @@ if uploaded_file is not None:
             else:
                 antiguedad_table['% sobre Total Periodo'] = '0.00%'
             
-            # **NUEVO: Añadir fila de totales a la tabla de Antigüedad**
             antiguedad_table_display = antiguedad_table.reset_index()
             total_row_ant_values = {col: antiguedad_table_display[col].sum() for col in antiguedad_table_display.columns if col not in ['Rango Antiguedad', '% sobre Total Periodo']}
             total_row_ant_values['Rango Antiguedad'] = 'Total'
