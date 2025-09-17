@@ -410,9 +410,11 @@ if uploaded_file is not None:
             ).properties(title=f'Distribución por Edad en {periodo_a_mostrar_edad}')
             st.altair_chart(chart_edad_hist, use_container_width=True)
             
-            edad_table = df_periodo_edad.groupby(['Rango Edad', 'Relación']).size().unstack(fill_value=0).reset_index()
-            st.dataframe(edad_table)
-            generate_download_buttons(edad_table, f'distribucion_edad_{periodo_a_mostrar_edad}')
+            edad_table = df_periodo_edad.groupby(['Rango Edad', 'Relación']).size().unstack(fill_value=0)
+            # **MODIFICACIÓN FINAL: Añadir columna Total a tabla Edad**
+            edad_table['Total'] = edad_table.sum(axis=1)
+            st.dataframe(edad_table.reset_index())
+            generate_download_buttons(edad_table.reset_index(), f'distribucion_edad_{periodo_a_mostrar_edad}')
             st.markdown('---')
 
             # --- Histograma Antigüedad ---
@@ -425,9 +427,11 @@ if uploaded_file is not None:
             ).properties(title=f'Distribución por Antigüedad en {periodo_a_mostrar_edad}')
             st.altair_chart(chart_antiguedad_hist, use_container_width=True)
 
-            antiguedad_table = df_periodo_edad.groupby(['Rango Antiguedad', 'Relación']).size().unstack(fill_value=0).reset_index()
-            st.dataframe(antiguedad_table)
-            generate_download_buttons(antiguedad_table, f'distribucion_antiguedad_{periodo_a_mostrar_edad}')
+            antiguedad_table = df_periodo_edad.groupby(['Rango Antiguedad', 'Relación']).size().unstack(fill_value=0)
+            # **MODIFICACIÓN FINAL: Añadir columna Total a tabla Antigüedad**
+            antiguedad_table['Total'] = antiguedad_table.sum(axis=1)
+            st.dataframe(antiguedad_table.reset_index())
+            generate_download_buttons(antiguedad_table.reset_index(), f'distribucion_antiguedad_{periodo_a_mostrar_edad}')
 
     # --- PESTAÑA 3: DESGLOSE (MODIFICADA) ---
     with tab2:
