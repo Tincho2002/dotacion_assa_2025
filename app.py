@@ -284,7 +284,7 @@ if uploaded_file is not None:
         "📋 Datos Brutos"
     ])
 
-    # --- PESTAÑA 1: RESUMEN (MODIFICADA) ---
+    # --- PESTAÑA 1: RESUMEN (NO TOCAR) ---
     with tab1:
         st.header('Resumen General de la Dotación')
         if filtered_df.empty:
@@ -297,7 +297,6 @@ if uploaded_file is not None:
             periodo_counts = filtered_df['Periodo'].value_counts().reset_index()
             periodo_counts.columns = ['Periodo', 'Cantidad']
             
-            # **MODIFICACIÓN 1: Cambiado a gráfico de línea para mejor visualización**
             min_val = periodo_counts['Cantidad'].min()
             max_val = periodo_counts['Cantidad'].max()
             padding = (max_val - min_val) * 0.1 
@@ -325,7 +324,6 @@ if uploaded_file is not None:
             st.altair_chart(chart_sexo, use_container_width=True)
             
             sexo_pivot = sexo_counts.pivot_table(index='Periodo', columns='Sexo', values='Cantidad', fill_value=0)
-            # **MODIFICACIÓN 2: Añadir columna Total a tabla Sexo**
             sexo_pivot['Total'] = sexo_pivot.sum(axis=1)
             st.dataframe(sexo_pivot.reset_index())
             generate_download_buttons(sexo_pivot.reset_index(), 'distribucion_sexo_por_periodo')
@@ -344,7 +342,6 @@ if uploaded_file is not None:
             st.altair_chart(chart_relacion, use_container_width=True)
 
             relacion_pivot = relacion_counts.pivot_table(index='Periodo', columns='Relación', values='Cantidad', fill_value=0)
-            # **MODIFICACIÓN 2: Añadir columna Total a tabla Relación**
             relacion_pivot['Total'] = relacion_pivot.sum(axis=1)
             st.dataframe(relacion_pivot.reset_index())
             generate_download_buttons(relacion_pivot.reset_index(), 'distribucion_relacion_por_periodo')
@@ -361,12 +358,10 @@ if uploaded_file is not None:
             periodo_var_counts['Cantidad_Mes_Anterior'] = periodo_var_counts['Cantidad_Actual'].shift(1)
             periodo_var_counts['Variacion_Cantidad'] = periodo_var_counts['Cantidad_Actual'] - periodo_var_counts['Cantidad_Mes_Anterior']
             
-            # **MODIFICACIÓN 3: Mostrar tabla sin N/A**
             display_var_table = periodo_var_counts.copy().fillna('')
             st.dataframe(display_var_table)
             generate_download_buttons(display_var_table, 'variacion_mensual_total')
             
-            # Gráfico de Variación Mensual
             chart_data_var = periodo_var_counts.dropna(subset=['Variacion_Cantidad'])
             
             bar_chart_var = alt.Chart(chart_data_var).mark_bar().encode(
@@ -413,13 +408,22 @@ if uploaded_file is not None:
             
             edad_table = df_periodo_edad.groupby(['Rango Edad', 'Relación']).size().unstack(fill_value=0)
             edad_table['Total'] = edad_table.sum(axis=1)
-            # **NUEVO: Añadir columna de porcentaje**
+            
             if total_empleados_periodo_edad > 0:
                 edad_table['% sobre Total Periodo'] = (edad_table['Total'] / total_empleados_periodo_edad * 100).map('{:.2f}%'.format)
             else:
                 edad_table['% sobre Total Periodo'] = '0.00%'
-            st.dataframe(edad_table.reset_index())
-            generate_download_buttons(edad_table.reset_index(), f'distribucion_edad_{periodo_a_mostrar_edad}')
+
+            # **NUEVO: Añadir fila de totales a la tabla de Edad**
+            edad_table_display = edad_table.reset_index()
+            total_row_edad_values = {col: edad_table_display[col].sum() for col in edad_table_display.columns if col not in ['Rango Edad', '% sobre Total Periodo']}
+            total_row_edad_values['Rango Edad'] = 'Total'
+            total_row_edad_values['% sobre Total Periodo'] = '100.00%'
+            total_row_edad_df = pd.DataFrame([total_row_edad_values])
+            edad_table_with_total = pd.concat([edad_table_display, total_row_edad_df], ignore_index=True)
+
+            st.dataframe(edad_table_with_total)
+            generate_download_buttons(edad_table_with_total, f'distribucion_edad_{periodo_a_mostrar_edad}')
             st.markdown('---')
 
             # --- Histograma Antigüedad ---
@@ -434,15 +438,24 @@ if uploaded_file is not None:
 
             antiguedad_table = df_periodo_edad.groupby(['Rango Antiguedad', 'Relación']).size().unstack(fill_value=0)
             antiguedad_table['Total'] = antiguedad_table.sum(axis=1)
-            # **NUEVO: Añadir columna de porcentaje**
+            
             if total_empleados_periodo_edad > 0:
                 antiguedad_table['% sobre Total Periodo'] = (antiguedad_table['Total'] / total_empleados_periodo_edad * 100).map('{:.2f}%'.format)
             else:
                 antiguedad_table['% sobre Total Periodo'] = '0.00%'
-            st.dataframe(antiguedad_table.reset_index())
-            generate_download_buttons(antiguedad_table.reset_index(), f'distribucion_antiguedad_{periodo_a_mostrar_edad}')
+            
+            # **NUEVO: Añadir fila de totales a la tabla de Antigüedad**
+            antiguedad_table_display = antiguedad_table.reset_index()
+            total_row_ant_values = {col: antiguedad_table_display[col].sum() for col in antiguedad_table_display.columns if col not in ['Rango Antiguedad', '% sobre Total Periodo']}
+            total_row_ant_values['Rango Antiguedad'] = 'Total'
+            total_row_ant_values['% sobre Total Periodo'] = '100.00%'
+            total_row_ant_df = pd.DataFrame([total_row_ant_values])
+            antiguedad_table_with_total = pd.concat([antiguedad_table_display, total_row_ant_df], ignore_index=True)
 
-    # --- PESTAÑA 3: DESGLOSE (MODIFICADA) ---
+            st.dataframe(antiguedad_table_with_total)
+            generate_download_buttons(antiguedad_table_with_total, f'distribucion_antiguedad_{periodo_a_mostrar_edad}')
+
+    # --- PESTAÑA 3: DESGLOSE (NO TOCAR) ---
     with tab2:
         st.header('Desglose Detallado por Categoría por Periodo')
         if filtered_df.empty or not selected_periodos:
@@ -473,7 +486,6 @@ if uploaded_file is not None:
                 
                 table_data = df_periodo_desglose.groupby(cat).size().reset_index(name='Cantidad')
                 
-                # **NUEVO: Añadir columna de porcentaje y fila de total**
                 if total_empleados_periodo_desglose > 0:
                     table_data['%'] = (table_data['Cantidad'] / total_empleados_periodo_desglose * 100).map('{:.2f}%'.format)
                 else:
