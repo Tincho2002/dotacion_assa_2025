@@ -383,62 +383,83 @@ if uploaded_file is not None:
             )
             st.altair_chart(bar_chart_var, use_container_width=True)
 
-    # --- PESTAÑA 2: EDAD Y ANTIGÜEDAD ---
+    # --- PESTAÑA 2: EDAD Y ANTIGÜEDAD (MODIFICADA) ---
     with tab_edad_antiguedad:
         st.header('Análisis de Edad y Antigüedad por Periodo')
-        if filtered_df.empty:
+        if filtered_df.empty or not selected_periodos:
             st.warning("No hay datos para mostrar con los filtros seleccionados.")
         else:
+            # Selector de período para esta pestaña
+            periodo_a_mostrar_edad = st.selectbox(
+                'Selecciona un Periodo para visualizar:',
+                selected_periodos,
+                index=len(selected_periodos) - 1, # Default al último período
+                key='periodo_selector_edad'
+            )
+            
+            # Filtrar el DF solo para el período seleccionado
+            df_periodo_edad = filtered_df[filtered_df['Periodo'] == periodo_a_mostrar_edad]
+
             # --- Histograma Edad ---
-            st.subheader('Distribución por Rango de Edad por Periodo')
-            chart_edad_hist = alt.Chart(filtered_df).mark_bar().encode(
+            st.subheader(f'Distribución por Rango de Edad para {periodo_a_mostrar_edad}')
+            chart_edad_hist = alt.Chart(df_periodo_edad).mark_bar().encode(
                 x=alt.X('Rango Edad:N', sort=all_rangos_edad),
                 y='count():Q',
                 color='Relación:N',
-                column=alt.Column('Periodo:N', sort=all_periodos),
                 tooltip=['count()', 'Relación']
-            ).properties(title='Distribución por Edad')
+            ).properties(title=f'Distribución por Edad en {periodo_a_mostrar_edad}')
             st.altair_chart(chart_edad_hist, use_container_width=True)
-            edad_table = filtered_df.groupby(['Periodo', 'Rango Edad', 'Relación']).size().unstack(fill_value=0).reset_index()
+            
+            edad_table = df_periodo_edad.groupby(['Rango Edad', 'Relación']).size().unstack(fill_value=0).reset_index()
             st.dataframe(edad_table)
-            generate_download_buttons(edad_table, 'distribucion_edad_por_periodo')
+            generate_download_buttons(edad_table, f'distribucion_edad_{periodo_a_mostrar_edad}')
             st.markdown('---')
 
             # --- Histograma Antigüedad ---
-            st.subheader('Distribución por Rango de Antigüedad por Periodo')
-            chart_antiguedad_hist = alt.Chart(filtered_df).mark_bar().encode(
+            st.subheader(f'Distribución por Rango de Antigüedad para {periodo_a_mostrar_edad}')
+            chart_antiguedad_hist = alt.Chart(df_periodo_edad).mark_bar().encode(
                 x=alt.X('Rango Antiguedad:N', sort=all_rangos_antiguedad),
                 y='count():Q',
                 color='Relación:N',
-                column=alt.Column('Periodo:N', sort=all_periodos),
                 tooltip=['count()', 'Relación']
-            ).properties(title='Distribución por Antigüedad')
+            ).properties(title=f'Distribución por Antigüedad en {periodo_a_mostrar_edad}')
             st.altair_chart(chart_antiguedad_hist, use_container_width=True)
-            antiguedad_table = filtered_df.groupby(['Periodo', 'Rango Antiguedad', 'Relación']).size().unstack(fill_value=0).reset_index()
-            st.dataframe(antiguedad_table)
-            generate_download_buttons(antiguedad_table, 'distribucion_antiguedad_por_periodo')
 
-    # --- PESTAÑA 3: DESGLOSE ---
+            antiguedad_table = df_periodo_edad.groupby(['Rango Antiguedad', 'Relación']).size().unstack(fill_value=0).reset_index()
+            st.dataframe(antiguedad_table)
+            generate_download_buttons(antiguedad_table, f'distribucion_antiguedad_{periodo_a_mostrar_edad}')
+
+    # --- PESTAÑA 3: DESGLOSE (MODIFICADA) ---
     with tab2:
         st.header('Desglose Detallado por Categoría por Periodo')
-        if filtered_df.empty:
+        if filtered_df.empty or not selected_periodos:
             st.warning("No hay datos para mostrar con los filtros seleccionados.")
         else:
+            # Selector de período para esta pestaña
+            periodo_a_mostrar_desglose = st.selectbox(
+                'Selecciona un Periodo para visualizar:',
+                selected_periodos,
+                index=len(selected_periodos) - 1, # Default al último período
+                key='periodo_selector_desglose'
+            )
+
+            # Filtrar el DF solo para el período seleccionado
+            df_periodo_desglose = filtered_df[filtered_df['Periodo'] == periodo_a_mostrar_desglose]
+
             categorias = ['Gerencia', 'Ministerio', 'Función', 'Distrito', 'Nivel']
             for cat in categorias:
-                st.subheader(f'Dotación por {cat} por Periodo')
-                chart = alt.Chart(filtered_df).mark_bar().encode(
+                st.subheader(f'Dotación por {cat} para {periodo_a_mostrar_desglose}')
+                chart = alt.Chart(df_periodo_desglose).mark_bar().encode(
                     x=alt.X(f'{cat}:N'),
                     y='count():Q',
                     color=f'{cat}:N',
-                    column=alt.Column('Periodo:N', sort=all_periodos),
                     tooltip=['count()', cat]
                 ).resolve_scale(x='independent')
                 st.altair_chart(chart, use_container_width=True)
                 
-                table_data = filtered_df.groupby(['Periodo', cat]).size().reset_index(name='Cantidad')
+                table_data = df_periodo_desglose.groupby(cat).size().reset_index(name='Cantidad')
                 st.dataframe(table_data)
-                generate_download_buttons(table_data, f'dotacion_{cat.lower()}_por_periodo')
+                generate_download_buttons(table_data, f'dotacion_{cat.lower()}_{periodo_a_mostrar_desglose}')
                 st.markdown('---')
 
     # --- PESTAÑA 4: DATOS BRUTOS ---
