@@ -399,6 +399,7 @@ if uploaded_file is not None:
             
             # Filtrar el DF solo para el período seleccionado
             df_periodo_edad = filtered_df[filtered_df['Periodo'] == periodo_a_mostrar_edad]
+            total_empleados_periodo_edad = len(df_periodo_edad)
 
             # --- Histograma Edad ---
             st.subheader(f'Distribución por Rango de Edad para {periodo_a_mostrar_edad}')
@@ -411,8 +412,12 @@ if uploaded_file is not None:
             st.altair_chart(chart_edad_hist, use_container_width=True)
             
             edad_table = df_periodo_edad.groupby(['Rango Edad', 'Relación']).size().unstack(fill_value=0)
-            # **MODIFICACIÓN FINAL: Añadir columna Total a tabla Edad**
             edad_table['Total'] = edad_table.sum(axis=1)
+            # **NUEVO: Añadir columna de porcentaje**
+            if total_empleados_periodo_edad > 0:
+                edad_table['% sobre Total Periodo'] = (edad_table['Total'] / total_empleados_periodo_edad * 100).map('{:.2f}%'.format)
+            else:
+                edad_table['% sobre Total Periodo'] = '0.00%'
             st.dataframe(edad_table.reset_index())
             generate_download_buttons(edad_table.reset_index(), f'distribucion_edad_{periodo_a_mostrar_edad}')
             st.markdown('---')
@@ -428,8 +433,12 @@ if uploaded_file is not None:
             st.altair_chart(chart_antiguedad_hist, use_container_width=True)
 
             antiguedad_table = df_periodo_edad.groupby(['Rango Antiguedad', 'Relación']).size().unstack(fill_value=0)
-            # **MODIFICACIÓN FINAL: Añadir columna Total a tabla Antigüedad**
             antiguedad_table['Total'] = antiguedad_table.sum(axis=1)
+            # **NUEVO: Añadir columna de porcentaje**
+            if total_empleados_periodo_edad > 0:
+                antiguedad_table['% sobre Total Periodo'] = (antiguedad_table['Total'] / total_empleados_periodo_edad * 100).map('{:.2f}%'.format)
+            else:
+                antiguedad_table['% sobre Total Periodo'] = '0.00%'
             st.dataframe(antiguedad_table.reset_index())
             generate_download_buttons(antiguedad_table.reset_index(), f'distribucion_antiguedad_{periodo_a_mostrar_edad}')
 
@@ -449,6 +458,7 @@ if uploaded_file is not None:
 
             # Filtrar el DF solo para el período seleccionado
             df_periodo_desglose = filtered_df[filtered_df['Periodo'] == periodo_a_mostrar_desglose]
+            total_empleados_periodo_desglose = len(df_periodo_desglose)
 
             categorias = ['Gerencia', 'Ministerio', 'Función', 'Distrito', 'Nivel']
             for cat in categorias:
@@ -462,8 +472,22 @@ if uploaded_file is not None:
                 st.altair_chart(chart, use_container_width=True)
                 
                 table_data = df_periodo_desglose.groupby(cat).size().reset_index(name='Cantidad')
-                st.dataframe(table_data)
-                generate_download_buttons(table_data, f'dotacion_{cat.lower()}_{periodo_a_mostrar_desglose}')
+                
+                # **NUEVO: Añadir columna de porcentaje y fila de total**
+                if total_empleados_periodo_desglose > 0:
+                    table_data['%'] = (table_data['Cantidad'] / total_empleados_periodo_desglose * 100).map('{:.2f}%'.format)
+                else:
+                    table_data['%'] = '0.00%'
+                
+                total_row = pd.DataFrame({
+                    cat: ['Total'],
+                    'Cantidad': [table_data['Cantidad'].sum()],
+                    '%': ['100.00%']
+                })
+                table_data_with_total = pd.concat([table_data, total_row], ignore_index=True)
+                
+                st.dataframe(table_data_with_total)
+                generate_download_buttons(table_data_with_total, f'dotacion_{cat.lower()}_{periodo_a_mostrar_desglose}')
                 st.markdown('---')
 
     # --- PESTAÑA 4: DATOS BRUTOS ---
