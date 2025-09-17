@@ -188,9 +188,7 @@ def get_sorted_unique_options(dataframe, column_name):
         
         if column_name == 'Rango Antiguedad':
             order = ['de 0 a 5 años', 'de 5 a 10 años', 'de 11 a 15 años', 'de 16 a 20 años', 'de 21 a 25 años', 'de 26 a 30 años', 'de 31 a 35 años', 'más de 35 años', 'no disponible']
-            # Mapea los valores existentes al orden deseado
             present_values = [val for val in order if val in unique_values]
-            # Agrega cualquier valor no esperado al final
             other_values = [val for val in unique_values if val not in order]
             return present_values + sorted(other_values)
         
@@ -358,14 +356,17 @@ if uploaded_file is not None:
             periodo_var_counts['Cantidad_Mes_Anterior'] = periodo_var_counts['Cantidad_Actual'].shift(1)
             periodo_var_counts['Variacion_Cantidad'] = periodo_var_counts['Cantidad_Actual'] - periodo_var_counts['Cantidad_Mes_Anterior']
             
-            # **NUEVO: Añadir columna de variación porcentual**
             periodo_var_counts['Variacion_%'] = (periodo_var_counts['Variacion_Cantidad'] / periodo_var_counts['Cantidad_Mes_Anterior'] * 100)
 
             display_var_table = periodo_var_counts.copy()
-            # Formatear el porcentaje después de copiar
             display_var_table['Variacion_%'] = display_var_table['Variacion_%'].map('{:.2f}%'.format, na_action='ignore')
             
-            display_var_table = display_var_table.fillna('')
+            # **MODIFICACIÓN 1: Mostrar cantidades como enteros**
+            for col in ['Cantidad_Mes_Anterior', 'Variacion_Cantidad']:
+                display_var_table[col] = pd.to_numeric(display_var_table[col], errors='coerce').astype('Int64')
+
+            display_var_table = display_var_table.fillna('').astype(str).replace('<NA>', '')
+            
             st.dataframe(display_var_table)
             generate_download_buttons(display_var_table, 'variacion_mensual_total')
             
@@ -385,21 +386,19 @@ if uploaded_file is not None:
             )
             st.altair_chart(bar_chart_var, use_container_width=True)
 
-    # --- PESTAÑA 2: EDAD Y ANTIGÜEDAD (NO TOCAR) ---
+    # --- PESTAÑA 2: EDAD Y ANTIGÜEDAD (MODIFICADA) ---
     with tab_edad_antiguedad:
         st.header('Análisis de Edad y Antigüedad por Periodo')
         if filtered_df.empty or not selected_periodos:
             st.warning("No hay datos para mostrar con los filtros seleccionados.")
         else:
-            # Selector de período para esta pestaña
             periodo_a_mostrar_edad = st.selectbox(
                 'Selecciona un Periodo para visualizar:',
                 selected_periodos,
-                index=len(selected_periodos) - 1, # Default al último período
+                index=len(selected_periodos) - 1,
                 key='periodo_selector_edad'
             )
             
-            # Filtrar el DF solo para el período seleccionado
             df_periodo_edad = filtered_df[filtered_df['Periodo'] == periodo_a_mostrar_edad]
             total_empleados_periodo_edad = len(df_periodo_edad)
 
@@ -407,7 +406,7 @@ if uploaded_file is not None:
             st.subheader(f'Distribución por Rango de Edad para {periodo_a_mostrar_edad}')
             chart_edad_hist = alt.Chart(df_periodo_edad).mark_bar().encode(
                 x=alt.X('Rango Edad:N', sort=all_rangos_edad),
-                y='count():Q',
+                y=alt.Y('count():Q', title='Cantidad'), # **MODIFICACIÓN 2: Cambiar título del eje Y**
                 color='Relación:N',
                 tooltip=['count()', 'Relación']
             ).properties(title=f'Distribución por Edad en {periodo_a_mostrar_edad}')
@@ -436,7 +435,7 @@ if uploaded_file is not None:
             st.subheader(f'Distribución por Rango de Antigüedad para {periodo_a_mostrar_edad}')
             chart_antiguedad_hist = alt.Chart(df_periodo_edad).mark_bar().encode(
                 x=alt.X('Rango Antiguedad:N', sort=all_rangos_antiguedad),
-                y='count():Q',
+                y=alt.Y('count():Q', title='Cantidad'), # **MODIFICACIÓN 2: Cambiar título del eje Y**
                 color='Relación:N',
                 tooltip=['count()', 'Relación']
             ).properties(title=f'Distribución por Antigüedad en {periodo_a_mostrar_edad}')
@@ -460,21 +459,19 @@ if uploaded_file is not None:
             st.dataframe(antiguedad_table_with_total)
             generate_download_buttons(antiguedad_table_with_total, f'distribucion_antiguedad_{periodo_a_mostrar_edad}')
 
-    # --- PESTAÑA 3: DESGLOSE (NO TOCAR) ---
+    # --- PESTAÑA 3: DESGLOSE (MODIFICADA) ---
     with tab2:
         st.header('Desglose Detallado por Categoría por Periodo')
         if filtered_df.empty or not selected_periodos:
             st.warning("No hay datos para mostrar con los filtros seleccionados.")
         else:
-            # Selector de período para esta pestaña
             periodo_a_mostrar_desglose = st.selectbox(
                 'Selecciona un Periodo para visualizar:',
                 selected_periodos,
-                index=len(selected_periodos) - 1, # Default al último período
+                index=len(selected_periodos) - 1,
                 key='periodo_selector_desglose'
             )
 
-            # Filtrar el DF solo para el período seleccionado
             df_periodo_desglose = filtered_df[filtered_df['Periodo'] == periodo_a_mostrar_desglose]
             total_empleados_periodo_desglose = len(df_periodo_desglose)
 
@@ -483,7 +480,7 @@ if uploaded_file is not None:
                 st.subheader(f'Dotación por {cat} para {periodo_a_mostrar_desglose}')
                 chart = alt.Chart(df_periodo_desglose).mark_bar().encode(
                     x=alt.X(f'{cat}:N'),
-                    y='count():Q',
+                    y=alt.Y('count():Q', title='Cantidad'), # **MODIFICACIÓN 2: Cambiar título del eje Y**
                     color=f'{cat}:N',
                     tooltip=['count()', cat]
                 ).resolve_scale(x='independent')
