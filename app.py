@@ -294,13 +294,12 @@ if uploaded_file is not None:
             st.subheader('Dotación por Periodo (Total)')
             periodo_counts = filtered_df.groupby('Periodo').size().reset_index(name='Cantidad')
             
-            # Ordenar tabla cronológicamente
             periodo_counts['Periodo'] = pd.Categorical(periodo_counts['Periodo'], categories=all_periodos, ordered=True)
             periodo_counts = periodo_counts.sort_values('Periodo').reset_index(drop=True)
 
             line_periodo = alt.Chart(periodo_counts).mark_line(point=True).encode(
                 x=alt.X('Periodo', sort=all_periodos, title='Periodo'),
-                y=alt.Y('Cantidad', title='Cantidad Total de Empleados'),
+                y=alt.Y('Cantidad', title='Cantidad Total de Empleados', scale=alt.Scale(zero=False)),
                 tooltip=['Periodo', 'Cantidad']
             )
             
@@ -321,29 +320,17 @@ if uploaded_file is not None:
             if not sexo_counts.empty:
                 bar_category_sexo = 'Masculino'
                 line_category_sexo = 'Femenino'
-
-                # Escala dinámica para barras
-                bar_data_sexo = sexo_counts[sexo_counts['Sexo'] == bar_category_sexo]
-                min_bar, max_bar = (bar_data_sexo['Cantidad'].min(), bar_data_sexo['Cantidad'].max()) if not bar_data_sexo.empty else (0, 1)
-                padding_bar = (max_bar - min_bar) * 0.15
-                domain_bar = [min_bar - padding_bar, max_bar + padding_bar]
-
-                # Escala dinámica para línea
-                line_data_sexo = sexo_counts[sexo_counts['Sexo'] == line_category_sexo]
-                min_line, max_line = (line_data_sexo['Cantidad'].min(), line_data_sexo['Cantidad'].max()) if not line_data_sexo.empty else (0, 1)
-                padding_line = (max_line - min_line) * 0.2
-                domain_line = [min_line - padding_line, max_line + padding_line]
-
+                
                 base = alt.Chart(sexo_counts).encode(x=alt.X('Periodo:N', sort=all_periodos, title='Periodo'))
 
                 bar = base.transform_filter(alt.datum.Sexo == bar_category_sexo).mark_bar(color='#1f77b4').encode(
-                    y=alt.Y('Cantidad:Q', axis=alt.Axis(title=f'Cantidad {bar_category_sexo}', titleColor='#1f77b4'), scale=alt.Scale(domain=domain_bar)),
+                    y=alt.Y('Cantidad:Q', axis=alt.Axis(title=f'Cantidad {bar_category_sexo}', titleColor='#1f77b4'), scale=alt.Scale(zero=False)),
                     tooltip=['Periodo', 'Sexo', 'Cantidad']
                 )
                 text_bar = bar.mark_text(align='center', baseline='bottom', dy=-5, color='black').encode(text='Cantidad:Q')
 
                 line = base.transform_filter(alt.datum.Sexo == line_category_sexo).mark_line(color='#ff7f0e', point=True).encode(
-                    y=alt.Y('Cantidad:Q', axis=alt.Axis(title=f'Cantidad {line_category_sexo}', titleColor='#ff7f0e'), scale=alt.Scale(domain=domain_line)),
+                    y=alt.Y('Cantidad:Q', axis=alt.Axis(title=f'Cantidad {line_category_sexo}', titleColor='#ff7f0e'), scale=alt.Scale(zero=False)),
                     tooltip=['Periodo', 'Sexo', 'Cantidad']
                 )
                 text_line = line.mark_text(align='center', baseline='bottom', dy=-10, color='#ff7f0e').encode(text='Cantidad:Q')
@@ -353,7 +340,6 @@ if uploaded_file is not None:
             
             sexo_pivot = sexo_counts.pivot_table(index='Periodo', columns='Sexo', values='Cantidad', fill_value=0)
             sexo_pivot['Total'] = sexo_pivot.sum(axis=1)
-            # Ordenar tabla cronológicamente
             sexo_pivot.index = pd.Categorical(sexo_pivot.index, categories=all_periodos, ordered=True)
             sexo_pivot = sexo_pivot.sort_index()
             st.dataframe(sexo_pivot.reset_index())
@@ -369,22 +355,10 @@ if uploaded_file is not None:
                 bar_category_rel = avg_counts.idxmax() if not avg_counts.empty else 'Convenio'
                 line_categories_rel = [cat for cat in avg_counts.index if cat != bar_category_rel]
 
-                # Escala dinámica para barras
-                bar_data_rel = relacion_counts[relacion_counts['Relación'] == bar_category_rel]
-                min_bar_rel, max_bar_rel = (bar_data_rel['Cantidad'].min(), bar_data_rel['Cantidad'].max()) if not bar_data_rel.empty else (0, 1)
-                padding_bar_rel = (max_bar_rel - min_bar_rel) * 0.15
-                domain_bar_rel = [min_bar_rel - padding_bar_rel, max_bar_rel + padding_bar_rel]
-                
-                # Escala dinámica para línea
-                line_data_rel = relacion_counts[relacion_counts['Relación'].isin(line_categories_rel)]
-                min_line_rel, max_line_rel = (line_data_rel['Cantidad'].min(), line_data_rel['Cantidad'].max()) if not line_data_rel.empty else (0, 1)
-                padding_line_rel = (max_line_rel - min_line_rel) * 0.2
-                domain_line_rel = [min_line_rel - padding_line_rel, max_line_rel + padding_line_rel]
-
                 base_rel = alt.Chart(relacion_counts).encode(x=alt.X('Periodo:N', sort=all_periodos, title='Periodo'))
 
                 bar_rel = base_rel.transform_filter(alt.datum.Relación == bar_category_rel).mark_bar(color='#2ca02c').encode(
-                    y=alt.Y('Cantidad:Q', axis=alt.Axis(title=f'Cantidad {bar_category_rel}', titleColor='#2ca02c'), scale=alt.Scale(domain=domain_bar_rel)),
+                    y=alt.Y('Cantidad:Q', axis=alt.Axis(title=f'Cantidad {bar_category_rel}', titleColor='#2ca02c'), scale=alt.Scale(zero=False)),
                     tooltip=['Periodo', 'Relación', 'Cantidad']
                 )
                 text_bar_rel = bar_rel.mark_text(align='center', baseline='bottom', dy=-5, color='black').encode(text='Cantidad:Q')
@@ -394,7 +368,7 @@ if uploaded_file is not None:
                     line_color = '#d62728'
                     line_title = " / ".join(line_categories_rel)
                     line_rel = base_rel.transform_filter(alt.FieldOneOfPredicate(field='Relación', oneOf=line_categories_rel)).mark_line(color=line_color, point=True).encode(
-                        y=alt.Y('Cantidad:Q', axis=alt.Axis(title=f'Cantidad {line_title}', titleColor=line_color), scale=alt.Scale(domain=domain_line_rel)),
+                        y=alt.Y('Cantidad:Q', axis=alt.Axis(title=f'Cantidad {line_title}', titleColor=line_color), scale=alt.Scale(zero=False)),
                         tooltip=['Periodo', 'Relación', 'Cantidad']
                     )
                     text_line_rel = line_rel.mark_text(align='center', baseline='bottom', dy=-10, color=line_color).encode(text='Cantidad:Q')
@@ -405,7 +379,6 @@ if uploaded_file is not None:
 
             relacion_pivot = relacion_counts.pivot_table(index='Periodo', columns='Relación', values='Cantidad', fill_value=0)
             relacion_pivot['Total'] = relacion_pivot.sum(axis=1)
-            # Ordenar tabla cronológicamente
             relacion_pivot.index = pd.Categorical(relacion_pivot.index, categories=all_periodos, ordered=True)
             relacion_pivot = relacion_pivot.sort_index()
             st.dataframe(relacion_pivot.reset_index())
@@ -418,13 +391,14 @@ if uploaded_file is not None:
             
             periodo_var_counts = filtered_df.groupby('Periodo').size().reset_index(name='Cantidad_Actual')
             periodo_var_counts['sort_key'] = periodo_var_counts['Periodo'].map(month_order_map)
-            periodo_var_counts = periodo_var_counts.sort_values('sort_key').drop(columns='sort_key').reset_index(drop=True)
+            periodo_var_counts = periodo_var_counts.sort_values('sort_key').reset_index(drop=True)
             
             periodo_var_counts['Cantidad_Mes_Anterior'] = periodo_var_counts['Cantidad_Actual'].shift(1)
             periodo_var_counts['Variacion_Cantidad'] = periodo_var_counts['Cantidad_Actual'] - periodo_var_counts['Cantidad_Mes_Anterior']
             periodo_var_counts['Variacion_%'] = (periodo_var_counts['Variacion_Cantidad'] / periodo_var_counts['Cantidad_Mes_Anterior'] * 100)
             periodo_var_counts['label'] = periodo_var_counts.apply(lambda row: f"{row['Variacion_Cantidad']:.0f} ({row['Variacion_%']:.2f}%)" if pd.notna(row['Variacion_%']) else "", axis=1)
             
+            # Corrección del error KeyError
             display_var_table = periodo_var_counts.copy().drop(columns=['label', 'sort_key'])
             display_var_table['Variacion_%'] = display_var_table['Variacion_%'].map('{:.2f}%'.format, na_action='ignore')
             for col in ['Cantidad_Mes_Anterior', 'Variacion_Cantidad']:
