@@ -313,38 +313,42 @@ if uploaded_file is not None:
             generate_download_buttons(periodo_counts, 'dotacion_total_por_periodo')
             st.markdown('---')
 
-            # --- Distribución por Sexo por Periodo (LÓGICA CORREGIDA) ---
+            # --- Distribución por Sexo por Periodo (LÓGICA CORREGIDA Y ROBUSTA) ---
             st.subheader('Distribución Comparativa por Sexo')
             sexo_counts = filtered_df.groupby(['Periodo', 'Sexo']).size().reset_index(name='Cantidad')
             
-            if not sexo_counts.empty:
-                masculino_data = sexo_counts[sexo_counts['Sexo'] == 'Masculino']
-                femenino_data = sexo_counts[sexo_counts['Sexo'] == 'Femenino']
-
+            layers_sexo = []
+            
+            masculino_data = sexo_counts[sexo_counts['Sexo'] == 'Masculino']
+            if not masculino_data.empty:
                 base_masculino = alt.Chart(masculino_data).encode(x=alt.X('Periodo:N', sort=all_periodos, title='Periodo'))
                 bars_masculino = base_masculino.mark_bar(color='#5b9bd5').encode(
                     y=alt.Y('Cantidad:Q', title='Cantidad Masculino', scale=alt.Scale(domain=[900, 980])),
                     tooltip=['Periodo', 'Cantidad']
                 )
                 text_masculino = bars_masculino.mark_text(align='center', dy=-5, color='black').encode(text='Cantidad:Q')
+                layers_sexo.append(bars_masculino + text_masculino)
 
+            femenino_data = sexo_counts[sexo_counts['Sexo'] == 'Femenino']
+            if not femenino_data.empty:
                 base_femenino = alt.Chart(femenino_data).encode(x=alt.X('Periodo:N', sort=all_periodos, title='Periodo'))
                 line_femenino = base_femenino.mark_line(point=True, color='#ed7d31').encode(
                     y=alt.Y('Cantidad:Q', title='Cantidad Femenino', scale=alt.Scale(domain=[320, 335])),
                     tooltip=['Periodo', 'Cantidad']
                 )
                 text_femenino = line_femenino.mark_text(align='center', dy=-10, color='#ed7d31').encode(text='Cantidad:Q')
-                
-                chart_sexo = alt.layer(
-                    (bars_masculino + text_masculino), 
-                    (line_femenino + text_femenino)
-                ).resolve_scale(
+                layers_sexo.append(line_femenino + text_femenino)
+            
+            if layers_sexo:
+                chart_sexo = alt.layer(*layers_sexo).resolve_scale(
                     y='independent'
                 ).properties(
                     title='Distribución Comparativa por Sexo'
                 )
                 st.altair_chart(chart_sexo, use_container_width=True)
-            
+            else:
+                st.warning("No hay datos de 'Sexo' para mostrar con los filtros seleccionados.")
+
             sexo_pivot = sexo_counts.pivot_table(index='Periodo', columns='Sexo', values='Cantidad', fill_value=0)
             sexo_pivot['Total'] = sexo_pivot.sum(axis=1)
             sexo_pivot.index = pd.Categorical(sexo_pivot.index, categories=all_periodos, ordered=True)
@@ -353,37 +357,41 @@ if uploaded_file is not None:
             generate_download_buttons(sexo_pivot.reset_index(), 'distribucion_sexo_por_periodo')
             st.markdown('---')
 
-            # --- Distribución por Relación por Periodo (LÓGICA CORREGIDA) ---
+            # --- Distribución por Relación por Periodo (LÓGICA CORREGIDA Y ROBUSTA) ---
             st.subheader('Distribución Comparativa por Relación')
             relacion_counts = filtered_df.groupby(['Periodo', 'Relación']).size().reset_index(name='Cantidad')
-
-            if not relacion_counts.empty:
-                convenio_data = relacion_counts[relacion_counts['Relación'] == 'Convenio']
-                fc_data = relacion_counts[relacion_counts['Relación'] == 'FC']
-
+            
+            layers_relacion = []
+            
+            convenio_data = relacion_counts[relacion_counts['Relación'] == 'Convenio']
+            if not convenio_data.empty:
                 base_convenio = alt.Chart(convenio_data).encode(x=alt.X('Periodo:N', sort=all_periodos, title='Periodo'))
                 bars_convenio = base_convenio.mark_bar(color='#4472c4').encode(
                     y=alt.Y('Cantidad:Q', title='Cantidad Convenio', scale=alt.Scale(domain=[1200, 1280])),
                     tooltip=['Periodo', 'Cantidad']
                 )
                 text_convenio = bars_convenio.mark_text(align='center', dy=-5, color='black').encode(text='Cantidad:Q')
-
+                layers_relacion.append(bars_convenio + text_convenio)
+            
+            fc_data = relacion_counts[relacion_counts['Relación'] == 'FC']
+            if not fc_data.empty:
                 base_fc = alt.Chart(fc_data).encode(x=alt.X('Periodo:N', sort=all_periodos, title='Periodo'))
                 line_fc = base_fc.mark_line(point=True, color='#ffc000').encode(
                     y=alt.Y('Cantidad:Q', title='Cantidad FC', scale=alt.Scale(domain=[35, 40])),
                     tooltip=['Periodo', 'Cantidad']
                 )
                 text_fc = line_fc.mark_text(align='center', dy=-10, color='#ffc000').encode(text='Cantidad:Q')
+                layers_relacion.append(line_fc + text_fc)
 
-                chart_relacion = alt.layer(
-                    (bars_convenio + text_convenio), 
-                    (line_fc + text_fc)
-                ).resolve_scale(
+            if layers_relacion:
+                chart_relacion = alt.layer(*layers_relacion).resolve_scale(
                     y='independent'
                 ).properties(
                     title='Distribución Comparativa por Relación'
                 )
                 st.altair_chart(chart_relacion, use_container_width=True)
+            else:
+                st.warning("No hay datos de 'Relación' para mostrar con los filtros seleccionados.")
 
             relacion_pivot = relacion_counts.pivot_table(index='Periodo', columns='Relación', values='Cantidad', fill_value=0)
             relacion_pivot['Total'] = relacion_pivot.sum(axis=1)
