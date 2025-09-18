@@ -355,8 +355,6 @@ if uploaded_file is not None:
         if filtered_df.empty:
             st.warning("No hay datos para mostrar con los filtros seleccionados.")
         else:
-            st.metric(label="Total de Empleados (filtrado)", value=len(filtered_df))
-            
             # --- Dotación por Periodo (Total) ---
             st.subheader('Dotación por Periodo (Total)')
             periodo_counts = filtered_df.groupby('Periodo').size().reset_index(name='Cantidad')
@@ -674,8 +672,4 @@ if uploaded_file is not None:
 
 else:
     st.info("⬆️ Esperando a que se suba un archivo Excel para comenzar el análisis.")
-
-
-
-
 
