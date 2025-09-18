@@ -273,9 +273,8 @@ if uploaded_file is not None:
 
     st.write(f"Después de aplicar los filtros, se muestran **{len(filtered_df)}** registros.")
     
-    # --- Tarjetas de Resumen Interactivas ---
+    # --- Tarjetas de Resumen Interactivas (VERSIÓN FINAL SIN COMENTARIOS) ---
     if selected_periodos and not filtered_df.empty:
-        # Determinar el último período seleccionado basado en el orden cronológico
         try:
             latest_period = max(selected_periodos, key=lambda p: all_periodos.index(p))
             df_latest = filtered_df[filtered_df['Periodo'] == latest_period]
@@ -283,7 +282,6 @@ if uploaded_file is not None:
             if not df_latest.empty:
                 total_dotacion = len(df_latest)
                 
-                # Cálculos para Sexo
                 sexo_dist = df_latest['Sexo'].value_counts()
                 sexo_pct = df_latest['Sexo'].value_counts(normalize=True) * 100
                 femenino_count = sexo_dist.get('Femenino', 0)
@@ -291,7 +289,6 @@ if uploaded_file is not None:
                 femenino_pct = sexo_pct.get('Femenino', 0)
                 masculino_pct = sexo_pct.get('Masculino', 0)
 
-                # Cálculos para Relación
                 relacion_dist = df_latest['Relación'].value_counts()
                 relacion_pct = df_latest['Relación'].value_counts(normalize=True) * 100
                 convenio_count = relacion_dist.get('Convenio', 0)
@@ -299,19 +296,16 @@ if uploaded_file is not None:
                 convenio_pct = relacion_pct.get('Convenio', 0)
                 fc_pct = relacion_pct.get('FC', 0)
 
-                # Iconos SVG (ajustados para el diseño)
                 female_icon_svg = """<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" fill="white" viewBox="0 0 256 256"><path d="M168,48a40,40,0,1,0-40,40,40,40,0,0,0,40-40ZM128,104a24,24,0,1,1,24-24A24,24,0,0,1,128,104Zm88,104v16a8,8,0,0,1-8,8H48a8,8,0,0,1-8-8v-16a8,8,0,0,1,8-8h8v-38.7a56.1,56.1,0,0,1,36.9-52.1,72,72,0,1,1,70.2,0A56.1,56.1,0,0,1,200,161.3V200h8a8,8,0,0,1,8,8Z"></path></svg>"""
                 male_icon_svg = """<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" fill="white" viewBox="0 0 256 256"><path d="M168,48a40,40,0,1,0-40,40,40,40,0,0,0,40-40ZM128,104a24,24,0,1,1,24-24A24,24,0,0,1,128,104Zm72,72a55.6,55.6,0,0,1-47,54.3V248a8,8,0,0,1-16,0V208H120v40a8,8,0,0,1-16,0V230.3A55.6,55.6,0,0,1,56,176a8,8,0,0,1,16,0,40,40,0,0,0,80,0,8,8,0,0,1,16,0Z"></path></svg>"""
                 
                 st.markdown(f"""
                 <div style="background-color: #f0ead6; border-radius: 10px; padding: 25px; margin-top: 15px; margin-bottom: 15px;">
                     <div style="display: grid; grid-template-columns: 1fr 1.5fr 1.5fr; gap: 20px; align-items: center;">
-                        
                         <div style="text-align: center; background-color: white; border-radius: 10px; padding: 10px;">
                             <span style="background-color: #FFD700; padding: 5px 10px; font-weight: bold; border-radius: 5px; font-size: 18px; color: black;">DOTACIÓN {latest_period.upper()}</span>
                             <p style="font-size: 64px; font-weight: bold; margin-top: 10px; margin-bottom: 0; color: black; line-height: 1;">{total_dotacion}</p>
                         </div>
-
                         <div style="background-color: #2f2f2f; border-radius: 10px; padding: 15px; display: grid; grid-template-columns: auto 1fr auto auto; align-items: center; gap: 10px; color: white;">
                             <div style="font-weight: bold; font-size: 18px; line-height: 1.8;">{femenino_pct:.0f}%<br>{masculino_pct:.0f}%</div>
                             <div>
@@ -321,7 +315,6 @@ if uploaded_file is not None:
                             <div style="font-weight: bold; font-size: 18px; text-align: right; line-height: 1.8;">{femenino_count}<br>{masculino_count}</div>
                             <div style="line-height: 1.8;">{female_icon_svg}<br>{male_icon_svg}</div>
                         </div>
-
                         <div style="background-color: #2f2f2f; border-radius: 10px; padding: 15px; display: grid; grid-template-columns: auto 1fr auto auto; align-items: center; gap: 10px; color: white;">
                              <div style="font-weight: bold; font-size: 18px; line-height: 1.8;">{convenio_pct:.0f}%<br>{fc_pct:.0f}%</div>
                             <div>
@@ -331,12 +324,10 @@ if uploaded_file is not None:
                             <div style="font-weight: bold; font-size: 18px; text-align: right; line-height: 1.8;">{convenio_count}<br>{fc_count}</div>
                             <div style="font-weight: bold; font-size: 18px; line-height: 1.8;">C<br>FC</div>
                         </div>
-
                     </div>
                 </div>
                 """, unsafe_allow_html=True)
         except (ValueError, IndexError):
-            # En caso de que se deseleccionen todos los períodos, no mostrar nada.
             pass
 
     st.markdown("---")
