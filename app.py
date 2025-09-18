@@ -313,35 +313,36 @@ if uploaded_file is not None:
             generate_download_buttons(periodo_counts, 'dotacion_total_por_periodo')
             st.markdown('---')
 
-            # --- Distribución por Sexo por Periodo ---
+            # --- Distribución por Sexo por Periodo (LÓGICA CORREGIDA) ---
             st.subheader('Distribución Comparativa por Sexo')
             sexo_counts = filtered_df.groupby(['Periodo', 'Sexo']).size().reset_index(name='Cantidad')
             
             if not sexo_counts.empty:
-                bar_category_sexo = 'Masculino'
-                line_category_sexo = 'Femenino'
+                masculino_data = sexo_counts[sexo_counts['Sexo'] == 'Masculino']
+                femenino_data = sexo_counts[sexo_counts['Sexo'] == 'Femenino']
+
+                base_masculino = alt.Chart(masculino_data).encode(x=alt.X('Periodo:N', sort=all_periodos, title='Periodo'))
+                bars_masculino = base_masculino.mark_bar(color='#5b9bd5').encode(
+                    y=alt.Y('Cantidad:Q', title='Cantidad Masculino', scale=alt.Scale(domain=[900, 980])),
+                    tooltip=['Periodo', 'Cantidad']
+                )
+                text_masculino = bars_masculino.mark_text(align='center', dy=-5, color='black').encode(text='Cantidad:Q')
+
+                base_femenino = alt.Chart(femenino_data).encode(x=alt.X('Periodo:N', sort=all_periodos, title='Periodo'))
+                line_femenino = base_femenino.mark_line(point=True, color='#ed7d31').encode(
+                    y=alt.Y('Cantidad:Q', title='Cantidad Femenino', scale=alt.Scale(domain=[320, 335])),
+                    tooltip=['Periodo', 'Cantidad']
+                )
+                text_femenino = line_femenino.mark_text(align='center', dy=-10, color='#ed7d31').encode(text='Cantidad:Q')
                 
-                base = alt.Chart(sexo_counts).encode(x=alt.X('Periodo:N', sort=all_periodos, title='Periodo'))
-
-                bar = base.transform_filter(alt.datum.Sexo == bar_category_sexo).mark_bar(color='#1f77b4').encode(
-                    y=alt.Y('Cantidad:Q',
-                          scale=alt.Scale(domain=[900, 980]),
-                          axis=alt.Axis(title=f'Cantidad {bar_category_sexo}', titleColor='#1f77b4', tickCount=9)),
-                    tooltip=['Periodo', 'Sexo', 'Cantidad']
+                chart_sexo = alt.layer(
+                    (bars_masculino + text_masculino), 
+                    (line_femenino + text_femenino)
+                ).resolve_scale(
+                    y='independent'
+                ).properties(
+                    title='Distribución Comparativa por Sexo'
                 )
-                text_bar = bar.mark_text(align='center', baseline='bottom', dy=-5, color='black').encode(text='Cantidad:Q')
-                bar_chart = bar + text_bar
-
-                line = base.transform_filter(alt.datum.Sexo == line_category_sexo).mark_line(color='#ff7f0e', point=True).encode(
-                    y=alt.Y('Cantidad:Q',
-                          scale=alt.Scale(domain=[320, 334]),
-                          axis=alt.Axis(title=f'Cantidad {line_category_sexo}', titleColor='#ff7f0e', tickCount=8)),
-                    tooltip=['Periodo', 'Sexo', 'Cantidad']
-                )
-                text_line = line.mark_text(align='center', baseline='bottom', dy=-10, color='#ff7f0e').encode(text='Cantidad:Q')
-                line_chart = line + text_line
-
-                chart_sexo = alt.layer(bar_chart, line_chart).resolve_scale(y='independent').properties(title='Distribución Comparativa por Sexo por Periodo')
                 st.altair_chart(chart_sexo, use_container_width=True)
             
             sexo_pivot = sexo_counts.pivot_table(index='Periodo', columns='Sexo', values='Cantidad', fill_value=0)
@@ -352,40 +353,36 @@ if uploaded_file is not None:
             generate_download_buttons(sexo_pivot.reset_index(), 'distribucion_sexo_por_periodo')
             st.markdown('---')
 
-            # --- Distribución por Relación por Periodo ---
+            # --- Distribución por Relación por Periodo (LÓGICA CORREGIDA) ---
             st.subheader('Distribución Comparativa por Relación')
             relacion_counts = filtered_df.groupby(['Periodo', 'Relación']).size().reset_index(name='Cantidad')
 
             if not relacion_counts.empty:
-                avg_counts = relacion_counts.groupby('Relación')['Cantidad'].mean()
-                bar_category_rel = avg_counts.idxmax() if not avg_counts.empty else 'Convenio'
-                line_categories_rel = [cat for cat in avg_counts.index if cat != bar_category_rel]
+                convenio_data = relacion_counts[relacion_counts['Relación'] == 'Convenio']
+                fc_data = relacion_counts[relacion_counts['Relación'] == 'FC']
 
-                base_rel = alt.Chart(relacion_counts).encode(x=alt.X('Periodo:N', sort=all_periodos, title='Periodo'))
-
-                bar_rel = base_rel.transform_filter(alt.datum.Relación == bar_category_rel).mark_bar(color='#2ca02c').encode(
-                    y=alt.Y('Cantidad:Q',
-                          scale=alt.Scale(domain=[1200, 1280]),
-                          axis=alt.Axis(title=f'Cantidad {bar_category_rel}', titleColor='#2ca02c', tickCount=9)),
-                    tooltip=['Periodo', 'Relación', 'Cantidad']
+                base_convenio = alt.Chart(convenio_data).encode(x=alt.X('Periodo:N', sort=all_periodos, title='Periodo'))
+                bars_convenio = base_convenio.mark_bar(color='#4472c4').encode(
+                    y=alt.Y('Cantidad:Q', title='Cantidad Convenio', scale=alt.Scale(domain=[1200, 1280])),
+                    tooltip=['Periodo', 'Cantidad']
                 )
-                text_bar_rel = bar_rel.mark_text(align='center', baseline='bottom', dy=-5, color='black').encode(text='Cantidad:Q')
-                bar_chart_rel = bar_rel + text_bar_rel
-                
-                line_rel_chart = alt.Chart() # Empty chart as a placeholder
-                if line_categories_rel:
-                    line_color = '#d62728'
-                    line_title = " / ".join(line_categories_rel)
-                    line_rel = base_rel.transform_filter(alt.FieldOneOfPredicate(field='Relación', oneOf=line_categories_rel)).mark_line(color=line_color, point=True).encode(
-                        y=alt.Y('Cantidad:Q',
-                              scale=alt.Scale(domain=[35, 40]),
-                              axis=alt.Axis(title=f'Cantidad {line_title}', titleColor=line_color, tickCount=11)),
-                        tooltip=['Periodo', 'Relación', 'Cantidad']
-                    )
-                    text_line_rel = line_rel.mark_text(align='center', baseline='bottom', dy=-10, color=line_color).encode(text='Cantidad:Q')
-                    line_rel_chart = line_rel + text_line_rel
-                
-                chart_relacion = alt.layer(bar_chart_rel, line_rel_chart).resolve_scale(y='independent').properties(title='Distribución Comparativa por Relación por Periodo')
+                text_convenio = bars_convenio.mark_text(align='center', dy=-5, color='black').encode(text='Cantidad:Q')
+
+                base_fc = alt.Chart(fc_data).encode(x=alt.X('Periodo:N', sort=all_periodos, title='Periodo'))
+                line_fc = base_fc.mark_line(point=True, color='#ffc000').encode(
+                    y=alt.Y('Cantidad:Q', title='Cantidad FC', scale=alt.Scale(domain=[35, 40])),
+                    tooltip=['Periodo', 'Cantidad']
+                )
+                text_fc = line_fc.mark_text(align='center', dy=-10, color='#ffc000').encode(text='Cantidad:Q')
+
+                chart_relacion = alt.layer(
+                    (bars_convenio + text_convenio), 
+                    (line_fc + text_fc)
+                ).resolve_scale(
+                    y='independent'
+                ).properties(
+                    title='Distribución Comparativa por Relación'
+                )
                 st.altair_chart(chart_relacion, use_container_width=True)
 
             relacion_pivot = relacion_counts.pivot_table(index='Periodo', columns='Relación', values='Cantidad', fill_value=0)
