@@ -307,13 +307,11 @@ if uploaded_file is not None:
                 <div style="background-color: #f0ead6; border-radius: 10px; padding: 25px; margin-top: 15px; margin-bottom: 15px;">
                     <div style="display: grid; grid-template-columns: 1fr 1.5fr 1.5fr; gap: 20px; align-items: center;">
                         
-                        <!-- Columna 1: Título y Total -->
                         <div style="text-align: center; background-color: white; border-radius: 10px; padding: 10px;">
                             <span style="background-color: #FFD700; padding: 5px 10px; font-weight: bold; border-radius: 5px; font-size: 18px; color: black;">DOTACIÓN {latest_period.upper()}</span>
                             <p style="font-size: 64px; font-weight: bold; margin-top: 10px; margin-bottom: 0; color: black; line-height: 1;">{total_dotacion}</p>
                         </div>
 
-                        <!-- Columna 2: Desglose por Sexo -->
                         <div style="background-color: #2f2f2f; border-radius: 10px; padding: 15px; display: grid; grid-template-columns: auto 1fr auto auto; align-items: center; gap: 10px; color: white;">
                             <div style="font-weight: bold; font-size: 18px; line-height: 1.8;">{femenino_pct:.0f}%<br>{masculino_pct:.0f}%</div>
                             <div>
@@ -324,7 +322,6 @@ if uploaded_file is not None:
                             <div style="line-height: 1.8;">{female_icon_svg}<br>{male_icon_svg}</div>
                         </div>
 
-                        <!-- Columna 3: Desglose por Relación -->
                         <div style="background-color: #2f2f2f; border-radius: 10px; padding: 15px; display: grid; grid-template-columns: auto 1fr auto auto; align-items: center; gap: 10px; color: white;">
                              <div style="font-weight: bold; font-size: 18px; line-height: 1.8;">{convenio_pct:.0f}%<br>{fc_pct:.0f}%</div>
                             <div>
@@ -677,6 +674,7 @@ if uploaded_file is not None:
 
 else:
     st.info("⬆️ Esperando a que se suba un archivo Excel para comenzar el análisis.")
+
 
 
 
