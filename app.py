@@ -324,13 +324,17 @@ if uploaded_file is not None:
                 base = alt.Chart(sexo_counts).encode(x=alt.X('Periodo:N', sort=all_periodos, title='Periodo'))
 
                 bar = base.transform_filter(alt.datum.Sexo == bar_category_sexo).mark_bar(color='#1f77b4').encode(
-                    y=alt.Y('Cantidad:Q', axis=alt.Axis(title=f'Cantidad {bar_category_sexo}', titleColor='#1f77b4'), scale=alt.Scale(zero=False)),
+                    y=alt.Y('Cantidad:Q',
+                          scale=alt.Scale(domain=[900, 980]),
+                          axis=alt.Axis(title=f'Cantidad {bar_category_sexo}', titleColor='#1f77b4', tickCount=9)), # 9 ticks for increments of 10
                     tooltip=['Periodo', 'Sexo', 'Cantidad']
                 )
                 text_bar = bar.mark_text(align='center', baseline='bottom', dy=-5, color='black').encode(text='Cantidad:Q')
 
                 line = base.transform_filter(alt.datum.Sexo == line_category_sexo).mark_line(color='#ff7f0e', point=True).encode(
-                    y=alt.Y('Cantidad:Q', axis=alt.Axis(title=f'Cantidad {line_category_sexo}', titleColor='#ff7f0e'), scale=alt.Scale(zero=False)),
+                    y=alt.Y('Cantidad:Q',
+                          scale=alt.Scale(domain=[320, 334]),
+                          axis=alt.Axis(title=f'Cantidad {line_category_sexo}', titleColor='#ff7f0e', tickCount=8)), # 8 ticks for increments of 2
                     tooltip=['Periodo', 'Sexo', 'Cantidad']
                 )
                 text_line = line.mark_text(align='center', baseline='bottom', dy=-10, color='#ff7f0e').encode(text='Cantidad:Q')
@@ -358,7 +362,9 @@ if uploaded_file is not None:
                 base_rel = alt.Chart(relacion_counts).encode(x=alt.X('Periodo:N', sort=all_periodos, title='Periodo'))
 
                 bar_rel = base_rel.transform_filter(alt.datum.Relación == bar_category_rel).mark_bar(color='#2ca02c').encode(
-                    y=alt.Y('Cantidad:Q', axis=alt.Axis(title=f'Cantidad {bar_category_rel}', titleColor='#2ca02c'), scale=alt.Scale(zero=False)),
+                    y=alt.Y('Cantidad:Q',
+                          scale=alt.Scale(domain=[1200, 1280]),
+                          axis=alt.Axis(title=f'Cantidad {bar_category_rel}', titleColor='#2ca02c', tickCount=9)), # 9 ticks for increments of 10
                     tooltip=['Periodo', 'Relación', 'Cantidad']
                 )
                 text_bar_rel = bar_rel.mark_text(align='center', baseline='bottom', dy=-5, color='black').encode(text='Cantidad:Q')
@@ -368,7 +374,9 @@ if uploaded_file is not None:
                     line_color = '#d62728'
                     line_title = " / ".join(line_categories_rel)
                     line_rel = base_rel.transform_filter(alt.FieldOneOfPredicate(field='Relación', oneOf=line_categories_rel)).mark_line(color=line_color, point=True).encode(
-                        y=alt.Y('Cantidad:Q', axis=alt.Axis(title=f'Cantidad {line_title}', titleColor=line_color), scale=alt.Scale(zero=False)),
+                        y=alt.Y('Cantidad:Q',
+                              scale=alt.Scale(domain=[35, 40]),
+                              axis=alt.Axis(title=f'Cantidad {line_title}', titleColor=line_color, tickCount=11)), # 11 ticks for increments of 0.5
                         tooltip=['Periodo', 'Relación', 'Cantidad']
                     )
                     text_line_rel = line_rel.mark_text(align='center', baseline='bottom', dy=-10, color=line_color).encode(text='Cantidad:Q')
@@ -398,7 +406,6 @@ if uploaded_file is not None:
             periodo_var_counts['Variacion_%'] = (periodo_var_counts['Variacion_Cantidad'] / periodo_var_counts['Cantidad_Mes_Anterior'] * 100)
             periodo_var_counts['label'] = periodo_var_counts.apply(lambda row: f"{row['Variacion_Cantidad']:.0f} ({row['Variacion_%']:.2f}%)" if pd.notna(row['Variacion_%']) else "", axis=1)
             
-            # Corrección del error KeyError
             display_var_table = periodo_var_counts.copy().drop(columns=['label', 'sort_key'])
             display_var_table['Variacion_%'] = display_var_table['Variacion_%'].map('{:.2f}%'.format, na_action='ignore')
             for col in ['Cantidad_Mes_Anterior', 'Variacion_Cantidad']:
@@ -410,7 +417,9 @@ if uploaded_file is not None:
             chart_data_var = periodo_var_counts.dropna(subset=['Variacion_Cantidad'])
             bar_chart_var = alt.Chart(chart_data_var).mark_bar().encode(
                 x=alt.X('Periodo', sort=all_periodos, title='Periodo'),
-                y=alt.Y('Variacion_Cantidad', title='Variación de Empleados'),
+                y=alt.Y('Variacion_Cantidad',
+                      scale=alt.Scale(domain=[-6, 4]),
+                      axis=alt.Axis(title='Variación de Empleados', tickCount=11)), # 11 ticks for increments of 1
                 color=alt.condition(alt.datum.Variacion_Cantidad > 0, alt.value("green"), alt.value("red")),
                 tooltip=['Periodo', 'Variacion_Cantidad', alt.Tooltip('Variacion_%', format='.2f')]
             )
