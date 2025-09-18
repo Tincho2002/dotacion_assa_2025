@@ -537,33 +537,67 @@ if uploaded_file is not None:
         if filtered_df.empty or not selected_periodos:
             st.warning("No hay datos para mostrar con los filtros seleccionados.")
         else:
-            periodo_a_mostrar_desglose = st.selectbox(
-                'Selecciona un Periodo para visualizar:',
-                selected_periodos,
-                index=len(selected_periodos) - 1,
-                key='periodo_selector_desglose'
-            )
+            # Creamos dos columnas para los selectores
+            col1, col2 = st.columns(2)
+
+            with col1:
+                periodo_a_mostrar_desglose = st.selectbox(
+                    'Seleccionar Periodo:',
+                    selected_periodos,
+                    index=len(selected_periodos) - 1,
+                    key='periodo_selector_desglose'
+                )
+            
+            with col2:
+                categorias = ['Gerencia', 'Ministerio', 'Función', 'Distrito', 'Nivel']
+                cat_seleccionada = st.selectbox(
+                    'Seleccionar Categoría:',
+                    categorias,
+                    key='cat_selector_desglose'
+                )
 
             df_periodo_desglose = filtered_df[filtered_df['Periodo'] == periodo_a_mostrar_desglose]
             total_empleados_periodo_desglose = len(df_periodo_desglose)
-            categorias = ['Gerencia', 'Ministerio', 'Función', 'Distrito', 'Nivel']
-            for cat in categorias:
-                st.subheader(f'Dotación por {cat} para {periodo_a_mostrar_desglose}')
-                chart = alt.Chart(df_periodo_desglose).mark_bar().encode(
-                    x=alt.X(f'{cat}:N'),
-                    y=alt.Y('count():Q', title='Cantidad'),
-                    color=f'{cat}:N',
-                    tooltip=['count()', cat]
-                ).resolve_scale(x='independent')
-                st.altair_chart(chart, use_container_width=True)
-                
-                table_data = df_periodo_desglose.groupby(cat).size().reset_index(name='Cantidad')
-                table_data['%'] = (table_data['Cantidad'] / total_empleados_periodo_desglose * 100).map('{:.2f}%'.format) if total_empleados_periodo_desglose > 0 else '0.00%'
-                total_row = pd.DataFrame({ cat: ['Total'], 'Cantidad': [table_data['Cantidad'].sum()], '%': ['100.00%'] })
-                table_data_with_total = pd.concat([table_data, total_row], ignore_index=True)
-                st.dataframe(table_data_with_total)
-                generate_download_buttons(table_data_with_total, f'dotacion_{cat.lower()}_{periodo_a_mostrar_desglose}')
-                st.markdown('---')
+
+            st.subheader(f'Dotación por {cat_seleccionada} para {periodo_a_mostrar_desglose}')
+            
+            # Gráfico ordenado de mayor a menor
+            chart = alt.Chart(df_periodo_desglose).mark_bar().encode(
+                x=alt.X(f'{cat_seleccionada}:N', sort='-y'), # '-y' ordena por el eje Y descendente
+                y=alt.Y('count():Q', title='Cantidad'),
+                color=f'{cat_seleccionada}:N',
+                tooltip=['count()', cat_seleccionada]
+            )
+
+            # Etiquetas de datos para el gráfico
+            text_labels = chart.mark_text(
+                align='center',
+                baseline='middle',
+                dy=-10 # Mueve la etiqueta un poco hacia arriba de la barra
+            ).encode(
+                text='count():Q'
+            )
+
+            st.altair_chart(chart + text_labels, use_container_width=True)
+            
+            # Tabla de datos ordenada de mayor a menor
+            table_data = df_periodo_desglose.groupby(cat_seleccionada).size().reset_index(name='Cantidad')
+            table_data = table_data.sort_values('Cantidad', ascending=False) # Ordena la tabla
+            
+            if total_empleados_periodo_desglose > 0:
+                table_data['%'] = (table_data['Cantidad'] / total_empleados_periodo_desglose * 100).map('{:.2f}%'.format)
+            else:
+                table_data['%'] = '0.00%'
+            
+            total_row = pd.DataFrame({ 
+                cat_seleccionada: ['Total'], 
+                'Cantidad': [table_data['Cantidad'].sum()], 
+                '%': ['100.00%'] 
+            })
+            table_data_with_total = pd.concat([table_data, total_row], ignore_index=True)
+            
+            st.dataframe(table_data_with_total)
+            generate_download_buttons(table_data_with_total, f'dotacion_{cat_seleccionada.lower()}_{periodo_a_mostrar_desglose}')
 
     # --- PESTAÑA 4: DATOS BRUTOS ---
     with tab3:
@@ -573,5 +607,6 @@ if uploaded_file is not None:
 
 else:
     st.info("⬆️ Esperando a que se suba un archivo Excel para comenzar el análisis.")
+
 
 
