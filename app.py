@@ -292,25 +292,21 @@ if uploaded_file is not None:
             
             # --- Dotación por Periodo (Total) ---
             st.subheader('Dotación por Periodo (Total)')
-            periodo_counts = filtered_df['Periodo'].value_counts().reset_index()
-            periodo_counts.columns = ['Periodo', 'Cantidad']
+            periodo_counts = filtered_df.groupby('Periodo').size().reset_index(name='Cantidad')
             
-            # Gráfico de línea base
+            # Ordenar tabla cronológicamente
+            periodo_counts['Periodo'] = pd.Categorical(periodo_counts['Periodo'], categories=all_periodos, ordered=True)
+            periodo_counts = periodo_counts.sort_values('Periodo').reset_index(drop=True)
+
             line_periodo = alt.Chart(periodo_counts).mark_line(point=True).encode(
                 x=alt.X('Periodo', sort=all_periodos, title='Periodo'),
                 y=alt.Y('Cantidad', title='Cantidad Total de Empleados'),
                 tooltip=['Periodo', 'Cantidad']
             )
             
-            # Etiquetas de texto para el gráfico de línea
             text_periodo = line_periodo.mark_text(
-                align='center',
-                baseline='bottom',
-                dy=-10,
-                color='black'
-            ).encode(
-                text='Cantidad:Q'
-            )
+                align='center', baseline='bottom', dy=-10, color='black'
+            ).encode(text='Cantidad:Q')
 
             chart_periodo = (line_periodo + text_periodo).properties(title='Evolución de la Dotación Total por Periodo')
             st.altair_chart(chart_periodo, use_container_width=True)
@@ -322,55 +318,44 @@ if uploaded_file is not None:
             st.subheader('Distribución Comparativa por Sexo')
             sexo_counts = filtered_df.groupby(['Periodo', 'Sexo']).size().reset_index(name='Cantidad')
             
-            # Definir la categoría mayoritaria para las barras (asumimos 'Masculino')
-            bar_category_sexo = 'Masculino'
-            line_category_sexo = 'Femenino'
+            if not sexo_counts.empty:
+                bar_category_sexo = 'Masculino'
+                line_category_sexo = 'Femenino'
 
-            base_sexo = alt.Chart(sexo_counts).encode(
-                x=alt.X('Periodo:N', sort=all_periodos, title='Periodo')
-            )
+                # Escala dinámica para barras
+                bar_data_sexo = sexo_counts[sexo_counts['Sexo'] == bar_category_sexo]
+                min_bar, max_bar = (bar_data_sexo['Cantidad'].min(), bar_data_sexo['Cantidad'].max()) if not bar_data_sexo.empty else (0, 1)
+                padding_bar = (max_bar - min_bar) * 0.15
+                domain_bar = [min_bar - padding_bar, max_bar + padding_bar]
 
-            bar_sexo = base_sexo.transform_filter(
-                alt.datum.Sexo == bar_category_sexo
-            ).mark_bar(color='#1f77b4').encode(
-                y=alt.Y('Cantidad:Q', axis=alt.Axis(title=f'Cantidad {bar_category_sexo}', titleColor='#1f77b4')),
-                tooltip=['Periodo', 'Sexo', 'Cantidad']
-            )
+                # Escala dinámica para línea
+                line_data_sexo = sexo_counts[sexo_counts['Sexo'] == line_category_sexo]
+                min_line, max_line = (line_data_sexo['Cantidad'].min(), line_data_sexo['Cantidad'].max()) if not line_data_sexo.empty else (0, 1)
+                padding_line = (max_line - min_line) * 0.2
+                domain_line = [min_line - padding_line, max_line + padding_line]
 
-            text_bar_sexo = bar_sexo.mark_text(
-                align='center',
-                baseline='bottom',
-                dy=-5,
-                color='black'
-            ).encode(
-                text='Cantidad:Q'
-            )
+                base = alt.Chart(sexo_counts).encode(x=alt.X('Periodo:N', sort=all_periodos, title='Periodo'))
 
-            line_sexo = base_sexo.transform_filter(
-                alt.datum.Sexo == line_category_sexo
-            ).mark_line(color='#ff7f0e', point=True).encode(
-                y=alt.Y('Cantidad:Q', axis=alt.Axis(title=f'Cantidad {line_category_sexo}', titleColor='#ff7f0e')),
-                tooltip=['Periodo', 'Sexo', 'Cantidad']
-            )
+                bar = base.transform_filter(alt.datum.Sexo == bar_category_sexo).mark_bar(color='#1f77b4').encode(
+                    y=alt.Y('Cantidad:Q', axis=alt.Axis(title=f'Cantidad {bar_category_sexo}', titleColor='#1f77b4'), scale=alt.Scale(domain=domain_bar)),
+                    tooltip=['Periodo', 'Sexo', 'Cantidad']
+                )
+                text_bar = bar.mark_text(align='center', baseline='bottom', dy=-5, color='black').encode(text='Cantidad:Q')
 
-            text_line_sexo = line_sexo.mark_text(
-                align='center',
-                baseline='bottom',
-                dy=-10,
-                color='#ff7f0e'
-            ).encode(
-                text='Cantidad:Q'
-            )
+                line = base.transform_filter(alt.datum.Sexo == line_category_sexo).mark_line(color='#ff7f0e', point=True).encode(
+                    y=alt.Y('Cantidad:Q', axis=alt.Axis(title=f'Cantidad {line_category_sexo}', titleColor='#ff7f0e'), scale=alt.Scale(domain=domain_line)),
+                    tooltip=['Periodo', 'Sexo', 'Cantidad']
+                )
+                text_line = line.mark_text(align='center', baseline='bottom', dy=-10, color='#ff7f0e').encode(text='Cantidad:Q')
 
-            chart_sexo = alt.layer(bar_sexo, text_bar_sexo, line_sexo, text_line_sexo).resolve_scale(
-                y='independent'
-            ).properties(
-                title='Distribución Comparativa por Sexo por Periodo'
-            )
-            st.altair_chart(chart_sexo, use_container_width=True)
+                chart_sexo = alt.layer(bar, text_bar, line, text_line).resolve_scale(y='independent').properties(title='Distribución Comparativa por Sexo por Periodo')
+                st.altair_chart(chart_sexo, use_container_width=True)
             
             sexo_pivot = sexo_counts.pivot_table(index='Periodo', columns='Sexo', values='Cantidad', fill_value=0)
             sexo_pivot['Total'] = sexo_pivot.sum(axis=1)
+            # Ordenar tabla cronológicamente
+            sexo_pivot.index = pd.Categorical(sexo_pivot.index, categories=all_periodos, ordered=True)
+            sexo_pivot = sexo_pivot.sort_index()
             st.dataframe(sexo_pivot.reset_index())
             generate_download_buttons(sexo_pivot.reset_index(), 'distribucion_sexo_por_periodo')
             st.markdown('---')
@@ -379,65 +364,50 @@ if uploaded_file is not None:
             st.subheader('Distribución Comparativa por Relación')
             relacion_counts = filtered_df.groupby(['Periodo', 'Relación']).size().reset_index(name='Cantidad')
 
-            # Identificar la categoría con mayor cantidad promedio para las barras
-            avg_counts = relacion_counts.groupby('Relación')['Cantidad'].mean()
-            if not avg_counts.empty:
-                bar_category_rel = avg_counts.idxmax()
+            if not relacion_counts.empty:
+                avg_counts = relacion_counts.groupby('Relación')['Cantidad'].mean()
+                bar_category_rel = avg_counts.idxmax() if not avg_counts.empty else 'Convenio'
                 line_categories_rel = [cat for cat in avg_counts.index if cat != bar_category_rel]
-            else: # Fallback por si no hay datos
-                bar_category_rel = 'Convenio'
-                line_categories_rel = ['FC']
 
-            base_relacion = alt.Chart(relacion_counts).encode(
-                x=alt.X('Periodo:N', sort=all_periodos, title='Periodo')
-            )
+                # Escala dinámica para barras
+                bar_data_rel = relacion_counts[relacion_counts['Relación'] == bar_category_rel]
+                min_bar_rel, max_bar_rel = (bar_data_rel['Cantidad'].min(), bar_data_rel['Cantidad'].max()) if not bar_data_rel.empty else (0, 1)
+                padding_bar_rel = (max_bar_rel - min_bar_rel) * 0.15
+                domain_bar_rel = [min_bar_rel - padding_bar_rel, max_bar_rel + padding_bar_rel]
+                
+                # Escala dinámica para línea
+                line_data_rel = relacion_counts[relacion_counts['Relación'].isin(line_categories_rel)]
+                min_line_rel, max_line_rel = (line_data_rel['Cantidad'].min(), line_data_rel['Cantidad'].max()) if not line_data_rel.empty else (0, 1)
+                padding_line_rel = (max_line_rel - min_line_rel) * 0.2
+                domain_line_rel = [min_line_rel - padding_line_rel, max_line_rel + padding_line_rel]
 
-            bar_relacion = base_relacion.transform_filter(
-                alt.datum.Relación == bar_category_rel
-            ).mark_bar(color='#2ca02c').encode(
-                y=alt.Y('Cantidad:Q', axis=alt.Axis(title=f'Cantidad {bar_category_rel}', titleColor='#2ca02c')),
-                tooltip=['Periodo', 'Relación', 'Cantidad']
-            )
+                base_rel = alt.Chart(relacion_counts).encode(x=alt.X('Periodo:N', sort=all_periodos, title='Periodo'))
 
-            text_bar_relacion = bar_relacion.mark_text(
-                align='center',
-                baseline='bottom',
-                dy=-5,
-                color='black'
-            ).encode(
-                text='Cantidad:Q'
-            )
-
-            # Para la línea, podríamos tener más de una categoría, aunque es raro
-            line_relacion_layers = []
-            if line_categories_rel:
-                line_color = '#d62728'
-                line_relacion = base_relacion.transform_filter(
-                     alt.FieldOneOfPredicate(field='Relación', oneOf=line_categories_rel)
-                ).mark_line(color=line_color, point=True).encode(
-                     y=alt.Y('Cantidad:Q', axis=alt.Axis(title=f'Cantidad {" / ".join(line_categories_rel)}', titleColor=line_color)),
-                     tooltip=['Periodo', 'Relación', 'Cantidad']
+                bar_rel = base_rel.transform_filter(alt.datum.Relación == bar_category_rel).mark_bar(color='#2ca02c').encode(
+                    y=alt.Y('Cantidad:Q', axis=alt.Axis(title=f'Cantidad {bar_category_rel}', titleColor='#2ca02c'), scale=alt.Scale(domain=domain_bar_rel)),
+                    tooltip=['Periodo', 'Relación', 'Cantidad']
                 )
-
-                text_line_relacion = line_relacion.mark_text(
-                    align='center',
-                    baseline='bottom',
-                    dy=-10,
-                    color=line_color
-                ).encode(
-                    text='Cantidad:Q'
-                )
-                line_relacion_layers = [line_relacion, text_line_relacion]
-
-            chart_relacion = alt.layer(bar_relacion, text_bar_relacion, *line_relacion_layers).resolve_scale(
-                y='independent'
-            ).properties(
-                title='Distribución Comparativa por Relación por Periodo'
-            )
-            st.altair_chart(chart_relacion, use_container_width=True)
+                text_bar_rel = bar_rel.mark_text(align='center', baseline='bottom', dy=-5, color='black').encode(text='Cantidad:Q')
+                
+                line_rel_layers = []
+                if line_categories_rel:
+                    line_color = '#d62728'
+                    line_title = " / ".join(line_categories_rel)
+                    line_rel = base_rel.transform_filter(alt.FieldOneOfPredicate(field='Relación', oneOf=line_categories_rel)).mark_line(color=line_color, point=True).encode(
+                        y=alt.Y('Cantidad:Q', axis=alt.Axis(title=f'Cantidad {line_title}', titleColor=line_color), scale=alt.Scale(domain=domain_line_rel)),
+                        tooltip=['Periodo', 'Relación', 'Cantidad']
+                    )
+                    text_line_rel = line_rel.mark_text(align='center', baseline='bottom', dy=-10, color=line_color).encode(text='Cantidad:Q')
+                    line_rel_layers = [line_rel, text_line_rel]
+                
+                chart_relacion = alt.layer(bar_rel, text_bar_rel, *line_rel_layers).resolve_scale(y='independent').properties(title='Distribución Comparativa por Relación por Periodo')
+                st.altair_chart(chart_relacion, use_container_width=True)
 
             relacion_pivot = relacion_counts.pivot_table(index='Periodo', columns='Relación', values='Cantidad', fill_value=0)
             relacion_pivot['Total'] = relacion_pivot.sum(axis=1)
+            # Ordenar tabla cronológicamente
+            relacion_pivot.index = pd.Categorical(relacion_pivot.index, categories=all_periodos, ordered=True)
+            relacion_pivot = relacion_pivot.sort_index()
             st.dataframe(relacion_pivot.reset_index())
             generate_download_buttons(relacion_pivot.reset_index(), 'distribucion_relacion_por_periodo')
             st.markdown('---')
@@ -453,45 +423,26 @@ if uploaded_file is not None:
             periodo_var_counts['Cantidad_Mes_Anterior'] = periodo_var_counts['Cantidad_Actual'].shift(1)
             periodo_var_counts['Variacion_Cantidad'] = periodo_var_counts['Cantidad_Actual'] - periodo_var_counts['Cantidad_Mes_Anterior']
             periodo_var_counts['Variacion_%'] = (periodo_var_counts['Variacion_Cantidad'] / periodo_var_counts['Cantidad_Mes_Anterior'] * 100)
-
-            # Preparar la etiqueta para el gráfico
-            periodo_var_counts['label'] = periodo_var_counts.apply(
-                lambda row: f"{row['Variacion_Cantidad']:.0f} ({row['Variacion_%']:.2f}%)" if pd.notna(row['Variacion_%']) else "",
-                axis=1
-            )
+            periodo_var_counts['label'] = periodo_var_counts.apply(lambda row: f"{row['Variacion_Cantidad']:.0f} ({row['Variacion_%']:.2f}%)" if pd.notna(row['Variacion_%']) else "", axis=1)
             
-            display_var_table = periodo_var_counts.copy().drop(columns=['label'])
+            display_var_table = periodo_var_counts.copy().drop(columns=['label', 'sort_key'])
             display_var_table['Variacion_%'] = display_var_table['Variacion_%'].map('{:.2f}%'.format, na_action='ignore')
-            
             for col in ['Cantidad_Mes_Anterior', 'Variacion_Cantidad']:
                 display_var_table[col] = pd.to_numeric(display_var_table[col], errors='coerce').astype('Int64').astype(str).replace('<NA>', '')
-            
             display_var_table = display_var_table.fillna('')
             st.dataframe(display_var_table)
             generate_download_buttons(display_var_table, 'variacion_mensual_total')
             
             chart_data_var = periodo_var_counts.dropna(subset=['Variacion_Cantidad'])
-            
             bar_chart_var = alt.Chart(chart_data_var).mark_bar().encode(
                 x=alt.X('Periodo', sort=all_periodos, title='Periodo'),
                 y=alt.Y('Variacion_Cantidad', title='Variación de Empleados'),
-                color=alt.condition(
-                    alt.datum.Variacion_Cantidad > 0,
-                    alt.value("green"),
-                    alt.value("red")
-                ),
+                color=alt.condition(alt.datum.Variacion_Cantidad > 0, alt.value("green"), alt.value("red")),
                 tooltip=['Periodo', 'Variacion_Cantidad', alt.Tooltip('Variacion_%', format='.2f')]
             )
-
             text_chart_var = bar_chart_var.mark_text(
-                align='center',
-                baseline='middle',
-                dy=alt.expr("datum.Variacion_Cantidad > 0 ? -10 : 15"), # Ajuste dinámico de posición
-                color='white'
-            ).encode(
-                text='label:N'
-            )
-
+                align='center', baseline='middle', dy=alt.expr("datum.Variacion_Cantidad > 0 ? -10 : 15"), color='white'
+            ).encode(text='label:N')
             st.altair_chart(bar_chart_var + text_chart_var, use_container_width=True)
 
     # --- PESTAÑA 2: EDAD Y ANTIGÜEDAD (SIN CAMBIOS) ---
@@ -510,7 +461,6 @@ if uploaded_file is not None:
             df_periodo_edad = filtered_df[filtered_df['Periodo'] == periodo_a_mostrar_edad]
             total_empleados_periodo_edad = len(df_periodo_edad)
 
-            # --- Histograma Edad ---
             st.subheader(f'Distribución por Rango de Edad para {periodo_a_mostrar_edad}')
             chart_edad_hist = alt.Chart(df_periodo_edad).mark_bar().encode(
                 x=alt.X('Rango Edad:N', sort=all_rangos_edad),
@@ -522,24 +472,17 @@ if uploaded_file is not None:
             
             edad_table = df_periodo_edad.groupby(['Rango Edad', 'Relación']).size().unstack(fill_value=0)
             edad_table['Total'] = edad_table.sum(axis=1)
-            
-            if total_empleados_periodo_edad > 0:
-                edad_table['% sobre Total Periodo'] = (edad_table['Total'] / total_empleados_periodo_edad * 100).map('{:.2f}%'.format)
-            else:
-                edad_table['% sobre Total Periodo'] = '0.00%'
-
+            edad_table['% sobre Total Periodo'] = (edad_table['Total'] / total_empleados_periodo_edad * 100).map('{:.2f}%'.format) if total_empleados_periodo_edad > 0 else '0.00%'
             edad_table_display = edad_table.reset_index()
             total_row_edad_values = {col: edad_table_display[col].sum() for col in edad_table_display.columns if col not in ['Rango Edad', '% sobre Total Periodo']}
             total_row_edad_values['Rango Edad'] = 'Total'
             total_row_edad_values['% sobre Total Periodo'] = '100.00%'
             total_row_edad_df = pd.DataFrame([total_row_edad_values])
             edad_table_with_total = pd.concat([edad_table_display, total_row_edad_df], ignore_index=True)
-
             st.dataframe(edad_table_with_total)
             generate_download_buttons(edad_table_with_total, f'distribucion_edad_{periodo_a_mostrar_edad}')
             st.markdown('---')
 
-            # --- Histograma Antigüedad ---
             st.subheader(f'Distribución por Rango de Antigüedad para {periodo_a_mostrar_edad}')
             chart_antiguedad_hist = alt.Chart(df_periodo_edad).mark_bar().encode(
                 x=alt.X('Rango Antiguedad:N', sort=all_rangos_antiguedad),
@@ -551,19 +494,13 @@ if uploaded_file is not None:
 
             antiguedad_table = df_periodo_edad.groupby(['Rango Antiguedad', 'Relación']).size().unstack(fill_value=0)
             antiguedad_table['Total'] = antiguedad_table.sum(axis=1)
-            
-            if total_empleados_periodo_edad > 0:
-                antiguedad_table['% sobre Total Periodo'] = (antiguedad_table['Total'] / total_empleados_periodo_edad * 100).map('{:.2f}%'.format)
-            else:
-                antiguedad_table['% sobre Total Periodo'] = '0.00%'
-            
+            antiguedad_table['% sobre Total Periodo'] = (antiguedad_table['Total'] / total_empleados_periodo_edad * 100).map('{:.2f}%'.format) if total_empleados_periodo_edad > 0 else '0.00%'
             antiguedad_table_display = antiguedad_table.reset_index()
             total_row_ant_values = {col: antiguedad_table_display[col].sum() for col in antiguedad_table_display.columns if col not in ['Rango Antiguedad', '% sobre Total Periodo']}
             total_row_ant_values['Rango Antiguedad'] = 'Total'
             total_row_ant_values['% sobre Total Periodo'] = '100.00%'
             total_row_ant_df = pd.DataFrame([total_row_ant_values])
             antiguedad_table_with_total = pd.concat([antiguedad_table_display, total_row_ant_df], ignore_index=True)
-
             st.dataframe(antiguedad_table_with_total)
             generate_download_buttons(antiguedad_table_with_total, f'distribucion_antiguedad_{periodo_a_mostrar_edad}')
 
@@ -582,7 +519,6 @@ if uploaded_file is not None:
 
             df_periodo_desglose = filtered_df[filtered_df['Periodo'] == periodo_a_mostrar_desglose]
             total_empleados_periodo_desglose = len(df_periodo_desglose)
-
             categorias = ['Gerencia', 'Ministerio', 'Función', 'Distrito', 'Nivel']
             for cat in categorias:
                 st.subheader(f'Dotación por {cat} para {periodo_a_mostrar_desglose}')
@@ -595,19 +531,9 @@ if uploaded_file is not None:
                 st.altair_chart(chart, use_container_width=True)
                 
                 table_data = df_periodo_desglose.groupby(cat).size().reset_index(name='Cantidad')
-                
-                if total_empleados_periodo_desglose > 0:
-                    table_data['%'] = (table_data['Cantidad'] / total_empleados_periodo_desglose * 100).map('{:.2f}%'.format)
-                else:
-                    table_data['%'] = '0.00%'
-                
-                total_row = pd.DataFrame({
-                    cat: ['Total'],
-                    'Cantidad': [table_data['Cantidad'].sum()],
-                    '%': ['100.00%']
-                })
+                table_data['%'] = (table_data['Cantidad'] / total_empleados_periodo_desglose * 100).map('{:.2f}%'.format) if total_empleados_periodo_desglose > 0 else '0.00%'
+                total_row = pd.DataFrame({ cat: ['Total'], 'Cantidad': [table_data['Cantidad'].sum()], '%': ['100.00%'] })
                 table_data_with_total = pd.concat([table_data, total_row], ignore_index=True)
-                
                 st.dataframe(table_data_with_total)
                 generate_download_buttons(table_data_with_total, f'dotacion_{cat.lower()}_{periodo_a_mostrar_desglose}')
                 st.markdown('---')
@@ -620,3 +546,4 @@ if uploaded_file is not None:
 
 else:
     st.info("⬆️ Esperando a que se suba un archivo Excel para comenzar el análisis.")
+
