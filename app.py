@@ -313,7 +313,7 @@ if uploaded_file is not None:
             generate_download_buttons(periodo_counts, 'dotacion_total_por_periodo')
             st.markdown('---')
 
-            # --- Distribución por Sexo por Periodo (LÓGICA CORREGIDA Y ROBUSTA) ---
+            # --- Distribución por Sexo por Periodo (CORRECCIÓN FINAL) ---
             st.subheader('Distribución Comparativa por Sexo')
             sexo_counts = filtered_df.groupby(['Periodo', 'Sexo']).size().reset_index(name='Cantidad')
             
@@ -323,7 +323,7 @@ if uploaded_file is not None:
             if not masculino_data.empty:
                 base_masculino = alt.Chart(masculino_data).encode(x=alt.X('Periodo:N', sort=all_periodos, title='Periodo'))
                 bars_masculino = base_masculino.mark_bar(color='#5b9bd5').encode(
-                    y=alt.Y('Cantidad:Q', title='Cantidad Masculino', scale=alt.Scale(domain=[900, 980])),
+                    y=alt.Y('Cantidad:Q', title='Cantidad Masculino', scale=alt.Scale(domain=[900, 980], zero=False, clamp=True)),
                     tooltip=['Periodo', 'Cantidad']
                 )
                 text_masculino = bars_masculino.mark_text(align='center', dy=-5, color='black').encode(text='Cantidad:Q')
@@ -333,7 +333,7 @@ if uploaded_file is not None:
             if not femenino_data.empty:
                 base_femenino = alt.Chart(femenino_data).encode(x=alt.X('Periodo:N', sort=all_periodos, title='Periodo'))
                 line_femenino = base_femenino.mark_line(point=True, color='#ed7d31').encode(
-                    y=alt.Y('Cantidad:Q', title='Cantidad Femenino', scale=alt.Scale(domain=[320, 335])),
+                    y=alt.Y('Cantidad:Q', title='Cantidad Femenino', scale=alt.Scale(domain=[320, 335], zero=False, clamp=True)),
                     tooltip=['Periodo', 'Cantidad']
                 )
                 text_femenino = line_femenino.mark_text(align='center', dy=-10, color='#ed7d31').encode(text='Cantidad:Q')
@@ -357,7 +357,7 @@ if uploaded_file is not None:
             generate_download_buttons(sexo_pivot.reset_index(), 'distribucion_sexo_por_periodo')
             st.markdown('---')
 
-            # --- Distribución por Relación por Periodo (LÓGICA CORREGIDA Y ROBUSTA) ---
+            # --- Distribución por Relación por Periodo (CORRECCIÓN FINAL) ---
             st.subheader('Distribución Comparativa por Relación')
             relacion_counts = filtered_df.groupby(['Periodo', 'Relación']).size().reset_index(name='Cantidad')
             
@@ -367,7 +367,7 @@ if uploaded_file is not None:
             if not convenio_data.empty:
                 base_convenio = alt.Chart(convenio_data).encode(x=alt.X('Periodo:N', sort=all_periodos, title='Periodo'))
                 bars_convenio = base_convenio.mark_bar(color='#4472c4').encode(
-                    y=alt.Y('Cantidad:Q', title='Cantidad Convenio', scale=alt.Scale(domain=[1200, 1280])),
+                    y=alt.Y('Cantidad:Q', title='Cantidad Convenio', scale=alt.Scale(domain=[1200, 1280], zero=False, clamp=True)),
                     tooltip=['Periodo', 'Cantidad']
                 )
                 text_convenio = bars_convenio.mark_text(align='center', dy=-5, color='black').encode(text='Cantidad:Q')
@@ -377,7 +377,7 @@ if uploaded_file is not None:
             if not fc_data.empty:
                 base_fc = alt.Chart(fc_data).encode(x=alt.X('Periodo:N', sort=all_periodos, title='Periodo'))
                 line_fc = base_fc.mark_line(point=True, color='#ffc000').encode(
-                    y=alt.Y('Cantidad:Q', title='Cantidad FC', scale=alt.Scale(domain=[35, 40])),
+                    y=alt.Y('Cantidad:Q', title='Cantidad FC', scale=alt.Scale(domain=[35, 40], zero=False, clamp=True)),
                     tooltip=['Periodo', 'Cantidad']
                 )
                 text_fc = line_fc.mark_text(align='center', dy=-10, color='#ffc000').encode(text='Cantidad:Q')
