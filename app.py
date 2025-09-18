@@ -453,12 +453,30 @@ if uploaded_file is not None:
             total_empleados_periodo_edad = len(df_periodo_edad)
 
             st.subheader(f'Distribución por Rango de Edad para {periodo_a_mostrar_edad}')
-            chart_edad_hist = alt.Chart(df_periodo_edad).mark_bar().encode(
+            
+            # Layer 1: The stacked bars
+            bars_edad = alt.Chart(df_periodo_edad).mark_bar().encode(
                 x=alt.X('Rango Edad:N', sort=all_rangos_edad),
                 y=alt.Y('count():Q', title='Cantidad'),
                 color='Relación:N',
                 tooltip=['count()', 'Relación']
-            ).properties(title=f'Distribución por Edad en {periodo_a_mostrar_edad}')
+            )
+
+            # Layer 2: The total labels
+            total_labels_edad = alt.Chart(df_periodo_edad).transform_aggregate(
+                total_count='count()',
+                groupby=['Rango Edad']
+            ).mark_text(
+                dy=-8, # position above bar
+                align='center',
+                color='black'
+            ).encode(
+                x=alt.X('Rango Edad:N', sort=all_rangos_edad),
+                y=alt.Y('total_count:Q'),
+                text=alt.Text('total_count:Q')
+            )
+
+            chart_edad_hist = (bars_edad + total_labels_edad).properties(title=f'Distribución por Edad en {periodo_a_mostrar_edad}')
             st.altair_chart(chart_edad_hist, use_container_width=True)
             
             edad_table = df_periodo_edad.groupby(['Rango Edad', 'Relación']).size().unstack(fill_value=0)
@@ -475,12 +493,30 @@ if uploaded_file is not None:
             st.markdown('---')
 
             st.subheader(f'Distribución por Rango de Antigüedad para {periodo_a_mostrar_edad}')
-            chart_antiguedad_hist = alt.Chart(df_periodo_edad).mark_bar().encode(
+            
+            # Layer 1: The stacked bars
+            bars_antiguedad = alt.Chart(df_periodo_edad).mark_bar().encode(
                 x=alt.X('Rango Antiguedad:N', sort=all_rangos_antiguedad),
                 y=alt.Y('count():Q', title='Cantidad'),
                 color='Relación:N',
                 tooltip=['count()', 'Relación']
-            ).properties(title=f'Distribución por Antigüedad en {periodo_a_mostrar_edad}')
+            )
+
+            # Layer 2: The total labels
+            total_labels_antiguedad = alt.Chart(df_periodo_edad).transform_aggregate(
+                total_count='count()',
+                groupby=['Rango Antiguedad']
+            ).mark_text(
+                dy=-8, # position above bar
+                align='center',
+                color='black'
+            ).encode(
+                x=alt.X('Rango Antiguedad:N', sort=all_rangos_antiguedad),
+                y=alt.Y('total_count:Q'),
+                text=alt.Text('total_count:Q')
+            )
+
+            chart_antiguedad_hist = (bars_antiguedad + total_labels_antiguedad).properties(title=f'Distribución por Antigüedad en {periodo_a_mostrar_edad}')
             st.altair_chart(chart_antiguedad_hist, use_container_width=True)
 
             antiguedad_table = df_periodo_edad.groupby(['Rango Antiguedad', 'Relación']).size().unstack(fill_value=0)
@@ -537,4 +573,5 @@ if uploaded_file is not None:
 
 else:
     st.info("⬆️ Esperando a que se suba un archivo Excel para comenzar el análisis.")
+
 
