@@ -103,13 +103,13 @@ def generate_download_buttons(df_to_download, filename_prefix):
         )
 
 @st.cache_data
-def load_and_clean_data(uploaded_file_obj):
-    """Carga y limpia los datos desde el archivo Excel subido."""
+def load_and_clean_data(url):
+    """Carga y limpia los datos desde la URL de un archivo Excel en GitHub."""
     df_excel = pd.DataFrame()
     try:
-        df_excel = pd.read_excel(uploaded_file_obj, sheet_name='Dotacion_25')
+        df_excel = pd.read_excel(url, sheet_name='Dotacion_25', engine='openpyxl')
     except Exception as e:
-        st.error(f"ERROR CRÍTICO: No se pudo leer la hoja 'Dotacion_25'. Mensaje: {e}")
+        st.error(f"ERROR CRÍTICO: No se pudo leer la hoja 'Dotacion_25' desde la URL. Mensaje: {e}")
         return pd.DataFrame()
 
     if df_excel.empty:
@@ -207,460 +207,401 @@ def get_sorted_unique_options(dataframe, column_name):
 
 
 # --- Cuerpo Principal de la Aplicación ---
-uploaded_file = st.file_uploader("📂 Por favor, sube tu archivo 'Dotacion_25.xlsx'", type="xlsx")
+EXCEL_URL = 'https://raw.githubusercontent.com/Tinchoo2002/dotacion_assa_2025/main/Dotacion_25.xlsx'
 
-if uploaded_file is not None:
-    df = load_and_clean_data(uploaded_file)
+with st.spinner('Cargando datos desde GitHub...'):
+    df = load_and_clean_data(EXCEL_URL)
 
-    if df.empty:
-        st.warning("El archivo no pudo ser procesado. Verifica el contenido y el nombre de la hoja.")
-        st.stop()
+if df.empty:
+    st.error("No se pudieron cargar los datos desde GitHub. Verifica la URL y que el repositorio sea público.")
+    st.stop()
 
-    st.success(f"Se ha cargado un total de **{len(df)}** registros de empleados.")
-    st.markdown("---")
+st.success(f"Se ha cargado un total de **{len(df)}** registros de empleados.")
+st.markdown("---")
 
-    # --- Barra Lateral de Filtros ---
-    st.sidebar.header('Filtros del Dashboard')
-    
-    all_periodos = get_sorted_unique_options(df, 'Periodo')
-    selected_periodos = st.sidebar.multiselect('Selecciona Periodo(s):', all_periodos, default=all_periodos)
+# --- Barra Lateral de Filtros ---
+st.sidebar.header('Filtros del Dashboard')
 
-    all_gerencias = get_sorted_unique_options(df, 'Gerencia')
-    selected_gerencias = st.sidebar.multiselect('Selecciona Gerencia(s):', all_gerencias, default=all_gerencias)
+all_periodos = get_sorted_unique_options(df, 'Periodo')
+selected_periodos = st.sidebar.multiselect('Selecciona Periodo(s):', all_periodos, default=all_periodos)
 
-    all_relaciones = get_sorted_unique_options(df, 'Relación')
-    selected_relaciones = st.sidebar.multiselect('Selecciona Relación(es):', all_relaciones, default=all_relaciones)
+all_gerencias = get_sorted_unique_options(df, 'Gerencia')
+selected_gerencias = st.sidebar.multiselect('Selecciona Gerencia(s):', all_gerencias, default=all_gerencias)
 
-    all_sexos = get_sorted_unique_options(df, 'Sexo')
-    selected_sexos = st.sidebar.multiselect('Selecciona Sexo(s):', all_sexos, default=all_sexos)
+all_relaciones = get_sorted_unique_options(df, 'Relación')
+selected_relaciones = st.sidebar.multiselect('Selecciona Relación(es):', all_relaciones, default=all_relaciones)
 
-    all_rangos_antiguedad = get_sorted_unique_options(df, 'Rango Antiguedad')
-    selected_rangos_antiguedad = st.sidebar.multiselect('Selecciona Rango(s) de Antigüedad:', all_rangos_antiguedad, default=all_rangos_antiguedad)
+all_sexos = get_sorted_unique_options(df, 'Sexo')
+selected_sexos = st.sidebar.multiselect('Selecciona Sexo(s):', all_sexos, default=all_sexos)
 
-    all_rangos_edad = get_sorted_unique_options(df, 'Rango Edad')
-    selected_rangos_edad = st.sidebar.multiselect('Selecciona Rango(s) de Edad:', all_rangos_edad, default=all_rangos_edad)
+all_rangos_antiguedad = get_sorted_unique_options(df, 'Rango Antiguedad')
+selected_rangos_antiguedad = st.sidebar.multiselect('Selecciona Rango(s) de Antigüedad:', all_rangos_antiguedad, default=all_rangos_antiguedad)
 
-    all_funciones = get_sorted_unique_options(df, 'Función')
-    selected_funciones = st.sidebar.multiselect('Selecciona Función(es):', all_funciones, default=all_funciones)
+all_rangos_edad = get_sorted_unique_options(df, 'Rango Edad')
+selected_rangos_edad = st.sidebar.multiselect('Selecciona Rango(s) de Edad:', all_rangos_edad, default=all_rangos_edad)
 
-    all_distritos = get_sorted_unique_options(df, 'Distrito')
-    selected_distritos = st.sidebar.multiselect('Selecciona Distrito(s):', all_distritos, default=all_distritos)
-    
-    all_ministerios = get_sorted_unique_options(df, 'Ministerio')
-    selected_ministerios = st.sidebar.multiselect('Selecciona Ministerio(s):', all_ministerios, default=all_ministerios)
-    
-    all_niveles = get_sorted_unique_options(df, 'Nivel')
-    selected_niveles = st.sidebar.multiselect('Selecciona Nivel(es):', all_niveles, default=all_niveles)
+all_funciones = get_sorted_unique_options(df, 'Función')
+selected_funciones = st.sidebar.multiselect('Selecciona Función(es):', all_funciones, default=all_funciones)
 
-    # --- Lógica de Filtrado ---
-    query_parts = []
-    if selected_periodos: query_parts.append("`Periodo` in @selected_periodos")
-    if selected_gerencias: query_parts.append("`Gerencia` in @selected_gerencias")
-    if selected_relaciones: query_parts.append("`Relación` in @selected_relaciones")
-    if selected_sexos: query_parts.append("`Sexo` in @selected_sexos")
-    if selected_rangos_antiguedad: query_parts.append("`Rango Antiguedad` in @selected_rangos_antiguedad")
-    if selected_rangos_edad: query_parts.append("`Rango Edad` in @selected_rangos_edad")
-    if selected_funciones: query_parts.append("`Función` in @selected_funciones")
-    if selected_distritos: query_parts.append("`Distrito` in @selected_distritos")
-    if selected_ministerios: query_parts.append("`Ministerio` in @selected_ministerios")
-    if selected_niveles: query_parts.append("`Nivel` in @selected_niveles")
-    
-    if query_parts:
-        filtered_df = df.query(" and ".join(query_parts))
+all_distritos = get_sorted_unique_options(df, 'Distrito')
+selected_distritos = st.sidebar.multiselect('Selecciona Distrito(s):', all_distritos, default=all_distritos)
+
+all_ministerios = get_sorted_unique_options(df, 'Ministerio')
+selected_ministerios = st.sidebar.multiselect('Selecciona Ministerio(s):', all_ministerios, default=all_ministerios)
+
+all_niveles = get_sorted_unique_options(df, 'Nivel')
+selected_niveles = st.sidebar.multiselect('Selecciona Nivel(es):', all_niveles, default=all_niveles)
+
+# --- Lógica de Filtrado ---
+query_parts = []
+if selected_periodos: query_parts.append("`Periodo` in @selected_periodos")
+if selected_gerencias: query_parts.append("`Gerencia` in @selected_gerencias")
+if selected_relaciones: query_parts.append("`Relación` in @selected_relaciones")
+if selected_sexos: query_parts.append("`Sexo` in @selected_sexos")
+if selected_rangos_antiguedad: query_parts.append("`Rango Antiguedad` in @selected_rangos_antiguedad")
+if selected_rangos_edad: query_parts.append("`Rango Edad` in @selected_rangos_edad")
+if selected_funciones: query_parts.append("`Función` in @selected_funciones")
+if selected_distritos: query_parts.append("`Distrito` in @selected_distritos")
+if selected_ministerios: query_parts.append("`Ministerio` in @selected_ministerios")
+if selected_niveles: query_parts.append("`Nivel` in @selected_niveles")
+
+if query_parts:
+    filtered_df = df.query(" and ".join(query_parts))
+else:
+    filtered_df = df.copy()
+
+
+st.write(f"Después de aplicar los filtros, se muestran **{len(filtered_df)}** registros.")
+st.markdown("---")
+
+# --- Pestañas de Visualización ---
+tab1, tab_edad_antiguedad, tab2, tab3 = st.tabs([
+    "📊 Resumen de Dotación",
+    "⏳ Edad y Antigüedad por Periodo",
+    "📈 Desglose por Categoría",
+    "📋 Datos Brutos"
+])
+
+# --- PESTAÑA 1: RESUMEN (MODIFICADA) ---
+with tab1:
+    st.header('Resumen General de la Dotación')
+    if filtered_df.empty:
+        st.warning("No hay datos para mostrar con los filtros seleccionados.")
     else:
-        filtered_df = df.copy()
+        st.metric(label="Total de Empleados (filtrado)", value=len(filtered_df))
+        
+        # --- Dotación por Periodo (Total) ---
+        st.subheader('Dotación por Periodo (Total)')
+        periodo_counts = filtered_df.groupby('Periodo').size().reset_index(name='Cantidad')
+        
+        periodo_counts['Periodo'] = pd.Categorical(periodo_counts['Periodo'], categories=all_periodos, ordered=True)
+        periodo_counts = periodo_counts.sort_values('Periodo').reset_index(drop=True)
 
+        line_periodo = alt.Chart(periodo_counts).mark_line(point=True).encode(
+            x=alt.X('Periodo', sort=all_periodos, title='Periodo'),
+            y=alt.Y('Cantidad', title='Cantidad Total de Empleados', scale=alt.Scale(zero=False)),
+            tooltip=['Periodo', 'Cantidad']
+        )
+        
+        text_periodo = line_periodo.mark_text(
+            align='center', baseline='bottom', dy=-10, color='black'
+        ).encode(text='Cantidad:Q')
 
-    st.write(f"Después de aplicar los filtros, se muestran **{len(filtered_df)}** registros.")
-    
-    # --- Tarjetas de Resumen Interactivas (VERSIÓN FINAL SIN COMENTARIOS) ---
-    if selected_periodos and not filtered_df.empty:
-        try:
-            latest_period = max(selected_periodos, key=lambda p: all_periodos.index(p))
-            df_latest = filtered_df[filtered_df['Periodo'] == latest_period]
+        chart_periodo = (line_periodo + text_periodo).properties(title='Evolución de la Dotación Total por Periodo')
+        st.altair_chart(chart_periodo, use_container_width=True)
+        st.dataframe(periodo_counts)
+        generate_download_buttons(periodo_counts, 'dotacion_total_por_periodo')
+        st.markdown('---')
 
-            if not df_latest.empty:
-                total_dotacion = len(df_latest)
-                
-                sexo_dist = df_latest['Sexo'].value_counts()
-                sexo_pct = df_latest['Sexo'].value_counts(normalize=True) * 100
-                femenino_count = sexo_dist.get('Femenino', 0)
-                masculino_count = sexo_dist.get('Masculino', 0)
-                femenino_pct = sexo_pct.get('Femenino', 0)
-                masculino_pct = sexo_pct.get('Masculino', 0)
-
-                relacion_dist = df_latest['Relación'].value_counts()
-                relacion_pct = df_latest['Relación'].value_counts(normalize=True) * 100
-                convenio_count = relacion_dist.get('Convenio', 0)
-                fc_count = relacion_dist.get('FC', 0)
-                convenio_pct = relacion_pct.get('Convenio', 0)
-                fc_pct = relacion_pct.get('FC', 0)
-
-                female_icon_svg = """<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" fill="white" viewBox="0 0 256 256"><path d="M168,48a40,40,0,1,0-40,40,40,40,0,0,0,40-40ZM128,104a24,24,0,1,1,24-24A24,24,0,0,1,128,104Zm88,104v16a8,8,0,0,1-8,8H48a8,8,0,0,1-8-8v-16a8,8,0,0,1,8-8h8v-38.7a56.1,56.1,0,0,1,36.9-52.1,72,72,0,1,1,70.2,0A56.1,56.1,0,0,1,200,161.3V200h8a8,8,0,0,1,8,8Z"></path></svg>"""
-                male_icon_svg = """<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" fill="white" viewBox="0 0 256 256"><path d="M168,48a40,40,0,1,0-40,40,40,40,0,0,0,40-40ZM128,104a24,24,0,1,1,24-24A24,24,0,0,1,128,104Zm72,72a55.6,55.6,0,0,1-47,54.3V248a8,8,0,0,1-16,0V208H120v40a8,8,0,0,1-16,0V230.3A55.6,55.6,0,0,1,56,176a8,8,0,0,1,16,0,40,40,0,0,0,80,0,8,8,0,0,1,16,0Z"></path></svg>"""
-                
-                st.markdown(f"""
-                <div style="background-color: #f0ead6; border-radius: 10px; padding: 25px; margin-top: 15px; margin-bottom: 15px;">
-                    <div style="display: grid; grid-template-columns: 1fr 1.5fr 1.5fr; gap: 20px; align-items: center;">
-                        <div style="text-align: center; background-color: white; border-radius: 10px; padding: 10px;">
-                            <span style="background-color: #FFD700; padding: 5px 10px; font-weight: bold; border-radius: 5px; font-size: 18px; color: black;">DOTACIÓN {latest_period.upper()}</span>
-                            <p style="font-size: 64px; font-weight: bold; margin-top: 10px; margin-bottom: 0; color: black; line-height: 1;">{total_dotacion}</p>
-                        </div>
-                        <div style="background-color: #2f2f2f; border-radius: 10px; padding: 15px; display: grid; grid-template-columns: auto 1fr auto auto; align-items: center; gap: 10px; color: white;">
-                            <div style="font-weight: bold; font-size: 18px; line-height: 1.8;">{femenino_pct:.0f}%<br>{masculino_pct:.0f}%</div>
-                            <div>
-                                <div title="{femenino_pct:.1f}%" style="background-color: #6e6e6e; height: 25px; width: {femenino_pct:.0f}%; border-radius: 5px; margin-bottom: 15px;"></div>
-                                <div title="{masculino_pct:.1f}%" style="background-color: #6e6e6e; height: 25px; width: {masculino_pct:.0f}%; border-radius: 5px;"></div>
-                            </div>
-                            <div style="font-weight: bold; font-size: 18px; text-align: right; line-height: 1.8;">{femenino_count}<br>{masculino_count}</div>
-                            <div style="line-height: 1.8;">{female_icon_svg}<br>{male_icon_svg}</div>
-                        </div>
-                        <div style="background-color: #2f2f2f; border-radius: 10px; padding: 15px; display: grid; grid-template-columns: auto 1fr auto auto; align-items: center; gap: 10px; color: white;">
-                             <div style="font-weight: bold; font-size: 18px; line-height: 1.8;">{convenio_pct:.0f}%<br>{fc_pct:.0f}%</div>
-                            <div>
-                                <div title="{convenio_pct:.1f}%" style="background-color: #6e6e6e; height: 25px; width: {convenio_pct:.0f}%; border-radius: 5px; margin-bottom: 15px;"></div>
-                                <div title="{fc_pct:.1f}%" style="background-color: #6e6e6e; height: 25px; width: {fc_pct:.0f}%; border-radius: 5px;"></div>
-                            </div>
-                            <div style="font-weight: bold; font-size: 18px; text-align: right; line-height: 1.8;">{convenio_count}<br>{fc_count}</div>
-                            <div style="font-weight: bold; font-size: 18px; line-height: 1.8;">C<br>FC</div>
-                        </div>
-                    </div>
-                </div>
-                """, unsafe_allow_html=True)
-        except (ValueError, IndexError):
-            pass
-
-    st.markdown("---")
-
-    # --- Pestañas de Visualización ---
-    tab1, tab_edad_antiguedad, tab2, tab3 = st.tabs([
-        "📊 Resumen de Dotación",
-        "⏳ Edad y Antigüedad por Periodo",
-        "📈 Desglose por Categoría",
-        "📋 Datos Brutos"
-    ])
-
-    # --- PESTAÑA 1: RESUMEN (MODIFICADA) ---
-    with tab1:
-        st.header('Resumen General de la Dotación')
-        if filtered_df.empty:
-            st.warning("No hay datos para mostrar con los filtros seleccionados.")
-        else:
-            # --- Dotación por Periodo (Total) ---
-            st.subheader('Dotación por Periodo (Total)')
-            periodo_counts = filtered_df.groupby('Periodo').size().reset_index(name='Cantidad')
-            
-            periodo_counts['Periodo'] = pd.Categorical(periodo_counts['Periodo'], categories=all_periodos, ordered=True)
-            periodo_counts = periodo_counts.sort_values('Periodo').reset_index(drop=True)
-
-            line_periodo = alt.Chart(periodo_counts).mark_line(point=True).encode(
-                x=alt.X('Periodo', sort=all_periodos, title='Periodo'),
-                y=alt.Y('Cantidad', title='Cantidad Total de Empleados', scale=alt.Scale(zero=False)),
+        # --- Distribución por Sexo por Periodo (CORRECCIÓN FINAL) ---
+        st.subheader('Distribución Comparativa por Sexo')
+        sexo_counts = filtered_df.groupby(['Periodo', 'Sexo']).size().reset_index(name='Cantidad')
+        
+        layers_sexo = []
+        
+        masculino_data = sexo_counts[sexo_counts['Sexo'] == 'Masculino']
+        if not masculino_data.empty:
+            base_masculino = alt.Chart(masculino_data).encode(x=alt.X('Periodo:N', sort=all_periodos, title='Periodo'))
+            bars_masculino = base_masculino.mark_bar(color='#5b9bd5').encode(
+                y=alt.Y('Cantidad:Q', title='Cantidad Masculino', scale=alt.Scale(domain=[900, 980], zero=False, clamp=True)),
                 tooltip=['Periodo', 'Cantidad']
             )
-            
-            text_periodo = line_periodo.mark_text(
-                align='center', baseline='bottom', dy=-10, color='black'
-            ).encode(text='Cantidad:Q')
+            text_masculino = bars_masculino.mark_text(align='center', dy=-5, color='black').encode(text='Cantidad:Q')
+            layers_sexo.append(bars_masculino + text_masculino)
 
-            chart_periodo = (line_periodo + text_periodo).properties(title='Evolución de la Dotación Total por Periodo')
-            st.altair_chart(chart_periodo, use_container_width=True)
-            st.dataframe(periodo_counts)
-            generate_download_buttons(periodo_counts, 'dotacion_total_por_periodo')
-            st.markdown('---')
-
-            # --- Distribución por Sexo por Periodo (CORRECCIÓN FINAL) ---
-            st.subheader('Distribución Comparativa por Sexo')
-            sexo_counts = filtered_df.groupby(['Periodo', 'Sexo']).size().reset_index(name='Cantidad')
-            
-            layers_sexo = []
-            
-            masculino_data = sexo_counts[sexo_counts['Sexo'] == 'Masculino']
-            if not masculino_data.empty:
-                base_masculino = alt.Chart(masculino_data).encode(x=alt.X('Periodo:N', sort=all_periodos, title='Periodo'))
-                bars_masculino = base_masculino.mark_bar(color='#5b9bd5').encode(
-                    y=alt.Y('Cantidad:Q', title='Cantidad Masculino', scale=alt.Scale(domain=[900, 980], zero=False, clamp=True)),
-                    tooltip=['Periodo', 'Cantidad']
-                )
-                text_masculino = bars_masculino.mark_text(align='center', dy=-5, color='black').encode(text='Cantidad:Q')
-                layers_sexo.append(bars_masculino + text_masculino)
-
-            femenino_data = sexo_counts[sexo_counts['Sexo'] == 'Femenino']
-            if not femenino_data.empty:
-                base_femenino = alt.Chart(femenino_data).encode(x=alt.X('Periodo:N', sort=all_periodos, title='Periodo'))
-                line_femenino = base_femenino.mark_line(point=True, color='#ed7d31').encode(
-                    y=alt.Y('Cantidad:Q', title='Cantidad Femenino', scale=alt.Scale(domain=[320, 335], zero=False, clamp=True)),
-                    tooltip=['Periodo', 'Cantidad']
-                )
-                text_femenino = line_femenino.mark_text(align='center', dy=-10, color='#ed7d31').encode(text='Cantidad:Q')
-                layers_sexo.append(line_femenino + text_femenino)
-            
-            if layers_sexo:
-                chart_sexo = alt.layer(*layers_sexo).resolve_scale(
-                    y='independent'
-                ).properties(
-                    title='Distribución Comparativa por Sexo'
-                )
-                st.altair_chart(chart_sexo, use_container_width=True)
-            else:
-                st.warning("No hay datos de 'Sexo' para mostrar con los filtros seleccionados.")
-
-            sexo_pivot = sexo_counts.pivot_table(index='Periodo', columns='Sexo', values='Cantidad', fill_value=0)
-            sexo_pivot['Total'] = sexo_pivot.sum(axis=1)
-            sexo_pivot.index = pd.Categorical(sexo_pivot.index, categories=all_periodos, ordered=True)
-            sexo_pivot = sexo_pivot.sort_index()
-            st.dataframe(sexo_pivot.reset_index())
-            generate_download_buttons(sexo_pivot.reset_index(), 'distribucion_sexo_por_periodo')
-            st.markdown('---')
-
-            # --- Distribución por Relación por Periodo (CORRECCIÓN FINAL) ---
-            st.subheader('Distribución Comparativa por Relación')
-            relacion_counts = filtered_df.groupby(['Periodo', 'Relación']).size().reset_index(name='Cantidad')
-            
-            layers_relacion = []
-            
-            convenio_data = relacion_counts[relacion_counts['Relación'] == 'Convenio']
-            if not convenio_data.empty:
-                base_convenio = alt.Chart(convenio_data).encode(x=alt.X('Periodo:N', sort=all_periodos, title='Periodo'))
-                bars_convenio = base_convenio.mark_bar(color='#4472c4').encode(
-                    y=alt.Y('Cantidad:Q', title='Cantidad Convenio', scale=alt.Scale(domain=[1200, 1280], zero=False, clamp=True)),
-                    tooltip=['Periodo', 'Cantidad']
-                )
-                text_convenio = bars_convenio.mark_text(align='center', dy=-5, color='black').encode(text='Cantidad:Q')
-                layers_relacion.append(bars_convenio + text_convenio)
-            
-            fc_data = relacion_counts[relacion_counts['Relación'] == 'FC']
-            if not fc_data.empty:
-                base_fc = alt.Chart(fc_data).encode(x=alt.X('Periodo:N', sort=all_periodos, title='Periodo'))
-                line_fc = base_fc.mark_line(point=True, color='#ffc000').encode(
-                    y=alt.Y('Cantidad:Q', title='Cantidad FC', scale=alt.Scale(domain=[35, 40], zero=False, clamp=True)),
-                    tooltip=['Periodo', 'Cantidad']
-                )
-                text_fc = line_fc.mark_text(align='center', dy=-10, color='#ffc000').encode(text='Cantidad:Q')
-                layers_relacion.append(line_fc + text_fc)
-
-            if layers_relacion:
-                chart_relacion = alt.layer(*layers_relacion).resolve_scale(
-                    y='independent'
-                ).properties(
-                    title='Distribución Comparativa por Relación'
-                )
-                st.altair_chart(chart_relacion, use_container_width=True)
-            else:
-                st.warning("No hay datos de 'Relación' para mostrar con los filtros seleccionados.")
-
-            relacion_pivot = relacion_counts.pivot_table(index='Periodo', columns='Relación', values='Cantidad', fill_value=0)
-            relacion_pivot['Total'] = relacion_pivot.sum(axis=1)
-            relacion_pivot.index = pd.Categorical(relacion_pivot.index, categories=all_periodos, ordered=True)
-            relacion_pivot = relacion_pivot.sort_index()
-            st.dataframe(relacion_pivot.reset_index())
-            generate_download_buttons(relacion_pivot.reset_index(), 'distribucion_relacion_por_periodo')
-            st.markdown('---')
-
-            # --- Variación Mensual ---
-            st.subheader('Variación Mensual de Dotación (Total)')
-            month_order_map = {name: i for i, name in enumerate(all_periodos) if name != 'No disponible'}
-            
-            periodo_var_counts = filtered_df.groupby('Periodo').size().reset_index(name='Cantidad_Actual')
-            periodo_var_counts['sort_key'] = periodo_var_counts['Periodo'].map(month_order_map)
-            periodo_var_counts = periodo_var_counts.sort_values('sort_key').reset_index(drop=True)
-            
-            periodo_var_counts['Cantidad_Mes_Anterior'] = periodo_var_counts['Cantidad_Actual'].shift(1)
-            periodo_var_counts['Variacion_Cantidad'] = periodo_var_counts['Cantidad_Actual'] - periodo_var_counts['Cantidad_Mes_Anterior']
-            periodo_var_counts['Variacion_%'] = (periodo_var_counts['Variacion_Cantidad'] / periodo_var_counts['Cantidad_Mes_Anterior'] * 100)
-            periodo_var_counts['label'] = periodo_var_counts.apply(lambda row: f"{row['Variacion_Cantidad']:.0f} ({row['Variacion_%']:.2f}%)" if pd.notna(row['Variacion_%']) else "", axis=1)
-            
-            display_var_table = periodo_var_counts.copy().drop(columns=['label', 'sort_key'])
-            display_var_table['Variacion_%'] = display_var_table['Variacion_%'].map('{:.2f}%'.format, na_action='ignore')
-            for col in ['Cantidad_Mes_Anterior', 'Variacion_Cantidad']:
-                display_var_table[col] = pd.to_numeric(display_var_table[col], errors='coerce').astype('Int64').astype(str).replace('<NA>', '')
-            display_var_table = display_var_table.fillna('')
-            st.dataframe(display_var_table)
-            generate_download_buttons(display_var_table, 'variacion_mensual_total')
-            
-            chart_data_var = periodo_var_counts.dropna(subset=['Variacion_Cantidad'])
-            bar_chart_var = alt.Chart(chart_data_var).mark_bar().encode(
-                x=alt.X('Periodo', sort=all_periodos, title='Periodo'),
-                y=alt.Y('Variacion_Cantidad',
-                      scale=alt.Scale(domain=[-6, 4]),
-                      axis=alt.Axis(title='Variación de Empleados', tickCount=11)), # 11 ticks for increments of 1
-                color=alt.condition(alt.datum.Variacion_Cantidad > 0, alt.value("green"), alt.value("red")),
-                tooltip=['Periodo', 'Variacion_Cantidad', alt.Tooltip('Variacion_%', format='.2f')]
+        femenino_data = sexo_counts[sexo_counts['Sexo'] == 'Femenino']
+        if not femenino_data.empty:
+            base_femenino = alt.Chart(femenino_data).encode(x=alt.X('Periodo:N', sort=all_periodos, title='Periodo'))
+            line_femenino = base_femenino.mark_line(point=True, color='#ed7d31').encode(
+                y=alt.Y('Cantidad:Q', title='Cantidad Femenino', scale=alt.Scale(domain=[320, 335], zero=False, clamp=True)),
+                tooltip=['Periodo', 'Cantidad']
             )
-            text_chart_var = bar_chart_var.mark_text(
-                align='center', baseline='middle', dy=alt.expr("datum.Variacion_Cantidad > 0 ? -10 : 15"), color='white'
-            ).encode(text='label:N')
-            st.altair_chart(bar_chart_var + text_chart_var, use_container_width=True)
-
-    # --- PESTAÑA 2: EDAD Y ANTIGÜEDAD (SIN CAMBIOS) ---
-    with tab_edad_antiguedad:
-        st.header('Análisis de Edad y Antigüedad por Periodo')
-        if filtered_df.empty or not selected_periodos:
-            st.warning("No hay datos para mostrar con los filtros seleccionados.")
+            text_femenino = line_femenino.mark_text(align='center', dy=-10, color='#ed7d31').encode(text='Cantidad:Q')
+            layers_sexo.append(line_femenino + text_femenino)
+        
+        if layers_sexo:
+            chart_sexo = alt.layer(*layers_sexo).resolve_scale(
+                y='independent'
+            ).properties(
+                title='Distribución Comparativa por Sexo'
+            )
+            st.altair_chart(chart_sexo, use_container_width=True)
         else:
-            periodo_a_mostrar_edad = st.selectbox(
-                'Selecciona un Periodo para visualizar:',
+            st.warning("No hay datos de 'Sexo' para mostrar con los filtros seleccionados.")
+
+        sexo_pivot = sexo_counts.pivot_table(index='Periodo', columns='Sexo', values='Cantidad', fill_value=0)
+        sexo_pivot['Total'] = sexo_pivot.sum(axis=1)
+        sexo_pivot.index = pd.Categorical(sexo_pivot.index, categories=all_periodos, ordered=True)
+        sexo_pivot = sexo_pivot.sort_index()
+        st.dataframe(sexo_pivot.reset_index())
+        generate_download_buttons(sexo_pivot.reset_index(), 'distribucion_sexo_por_periodo')
+        st.markdown('---')
+
+        # --- Distribución por Relación por Periodo (CORRECCIÓN FINAL) ---
+        st.subheader('Distribución Comparativa por Relación')
+        relacion_counts = filtered_df.groupby(['Periodo', 'Relación']).size().reset_index(name='Cantidad')
+        
+        layers_relacion = []
+        
+        convenio_data = relacion_counts[relacion_counts['Relación'] == 'Convenio']
+        if not convenio_data.empty:
+            base_convenio = alt.Chart(convenio_data).encode(x=alt.X('Periodo:N', sort=all_periodos, title='Periodo'))
+            bars_convenio = base_convenio.mark_bar(color='#4472c4').encode(
+                y=alt.Y('Cantidad:Q', title='Cantidad Convenio', scale=alt.Scale(domain=[1200, 1280], zero=False, clamp=True)),
+                tooltip=['Periodo', 'Cantidad']
+            )
+            text_convenio = bars_convenio.mark_text(align='center', dy=-5, color='black').encode(text='Cantidad:Q')
+            layers_relacion.append(bars_convenio + text_convenio)
+        
+        fc_data = relacion_counts[relacion_counts['Relación'] == 'FC']
+        if not fc_data.empty:
+            base_fc = alt.Chart(fc_data).encode(x=alt.X('Periodo:N', sort=all_periodos, title='Periodo'))
+            line_fc = base_fc.mark_line(point=True, color='#ffc000').encode(
+                y=alt.Y('Cantidad:Q', title='Cantidad FC', scale=alt.Scale(domain=[35, 40], zero=False, clamp=True)),
+                tooltip=['Periodo', 'Cantidad']
+            )
+            text_fc = line_fc.mark_text(align='center', dy=-10, color='#ffc000').encode(text='Cantidad:Q')
+            layers_relacion.append(line_fc + text_fc)
+
+        if layers_relacion:
+            chart_relacion = alt.layer(*layers_relacion).resolve_scale(
+                y='independent'
+            ).properties(
+                title='Distribución Comparativa por Relación'
+            )
+            st.altair_chart(chart_relacion, use_container_width=True)
+        else:
+            st.warning("No hay datos de 'Relación' para mostrar con los filtros seleccionados.")
+
+        relacion_pivot = relacion_counts.pivot_table(index='Periodo', columns='Relación', values='Cantidad', fill_value=0)
+        relacion_pivot['Total'] = relacion_pivot.sum(axis=1)
+        relacion_pivot.index = pd.Categorical(relacion_pivot.index, categories=all_periodos, ordered=True)
+        relacion_pivot = relacion_pivot.sort_index()
+        st.dataframe(relacion_pivot.reset_index())
+        generate_download_buttons(relacion_pivot.reset_index(), 'distribucion_relacion_por_periodo')
+        st.markdown('---')
+
+        # --- Variación Mensual ---
+        st.subheader('Variación Mensual de Dotación (Total)')
+        month_order_map = {name: i for i, name in enumerate(all_periodos) if name != 'No disponible'}
+        
+        periodo_var_counts = filtered_df.groupby('Periodo').size().reset_index(name='Cantidad_Actual')
+        periodo_var_counts['sort_key'] = periodo_var_counts['Periodo'].map(month_order_map)
+        periodo_var_counts = periodo_var_counts.sort_values('sort_key').reset_index(drop=True)
+        
+        periodo_var_counts['Cantidad_Mes_Anterior'] = periodo_var_counts['Cantidad_Actual'].shift(1)
+        periodo_var_counts['Variacion_Cantidad'] = periodo_var_counts['Cantidad_Actual'] - periodo_var_counts['Cantidad_Mes_Anterior']
+        periodo_var_counts['Variacion_%'] = (periodo_var_counts['Variacion_Cantidad'] / periodo_var_counts['Cantidad_Mes_Anterior'] * 100)
+        periodo_var_counts['label'] = periodo_var_counts.apply(lambda row: f"{row['Variacion_Cantidad']:.0f} ({row['Variacion_%']:.2f}%)" if pd.notna(row['Variacion_%']) else "", axis=1)
+        
+        display_var_table = periodo_var_counts.copy().drop(columns=['label', 'sort_key'])
+        display_var_table['Variacion_%'] = display_var_table['Variacion_%'].map('{:.2f}%'.format, na_action='ignore')
+        for col in ['Cantidad_Mes_Anterior', 'Variacion_Cantidad']:
+            display_var_table[col] = pd.to_numeric(display_var_table[col], errors='coerce').astype('Int64').astype(str).replace('<NA>', '')
+        display_var_table = display_var_table.fillna('')
+        st.dataframe(display_var_table)
+        generate_download_buttons(display_var_table, 'variacion_mensual_total')
+        
+        chart_data_var = periodo_var_counts.dropna(subset=['Variacion_Cantidad'])
+        bar_chart_var = alt.Chart(chart_data_var).mark_bar().encode(
+            x=alt.X('Periodo', sort=all_periodos, title='Periodo'),
+            y=alt.Y('Variacion_Cantidad',
+                  scale=alt.Scale(domain=[-6, 4]),
+                  axis=alt.Axis(title='Variación de Empleados', tickCount=11)), # 11 ticks for increments of 1
+            color=alt.condition(alt.datum.Variacion_Cantidad > 0, alt.value("green"), alt.value("red")),
+            tooltip=['Periodo', 'Variacion_Cantidad', alt.Tooltip('Variacion_%', format='.2f')]
+        )
+        text_chart_var = bar_chart_var.mark_text(
+            align='center', baseline='middle', dy=alt.expr("datum.Variacion_Cantidad > 0 ? -10 : 15"), color='white'
+        ).encode(text='label:N')
+        st.altair_chart(bar_chart_var + text_chart_var, use_container_width=True)
+
+# --- PESTAÑA 2: EDAD Y ANTIGÜEDAD (SIN CAMBIOS) ---
+with tab_edad_antiguedad:
+    st.header('Análisis de Edad y Antigüedad por Periodo')
+    if filtered_df.empty or not selected_periodos:
+        st.warning("No hay datos para mostrar con los filtros seleccionados.")
+    else:
+        periodo_a_mostrar_edad = st.selectbox(
+            'Selecciona un Periodo para visualizar:',
+            selected_periodos,
+            index=len(selected_periodos) - 1,
+            key='periodo_selector_edad'
+        )
+        
+        df_periodo_edad = filtered_df[filtered_df['Periodo'] == periodo_a_mostrar_edad]
+        total_empleados_periodo_edad = len(df_periodo_edad)
+
+        st.subheader(f'Distribución por Rango de Edad para {periodo_a_mostrar_edad}')
+        
+        # Layer 1: The stacked bars
+        bars_edad = alt.Chart(df_periodo_edad).mark_bar().encode(
+            x=alt.X('Rango Edad:N', sort=all_rangos_edad),
+            y=alt.Y('count():Q', title='Cantidad'),
+            color='Relación:N',
+            tooltip=['count()', 'Relación']
+        )
+
+        # Layer 2: The total labels
+        total_labels_edad = alt.Chart(df_periodo_edad).transform_aggregate(
+            total_count='count()',
+            groupby=['Rango Edad']
+        ).mark_text(
+            dy=-8, # position above bar
+            align='center',
+            color='black'
+        ).encode(
+            x=alt.X('Rango Edad:N', sort=all_rangos_edad),
+            y=alt.Y('total_count:Q'),
+            text=alt.Text('total_count:Q')
+        )
+
+        chart_edad_hist = (bars_edad + total_labels_edad).properties(title=f'Distribución por Edad en {periodo_a_mostrar_edad}')
+        st.altair_chart(chart_edad_hist, use_container_width=True)
+        
+        edad_table = df_periodo_edad.groupby(['Rango Edad', 'Relación']).size().unstack(fill_value=0)
+        edad_table['Total'] = edad_table.sum(axis=1)
+        edad_table['% sobre Total Periodo'] = (edad_table['Total'] / total_empleados_periodo_edad * 100).map('{:.2f}%'.format) if total_empleados_periodo_edad > 0 else '0.00%'
+        edad_table_display = edad_table.reset_index()
+        total_row_edad_values = {col: edad_table_display[col].sum() for col in edad_table_display.columns if col not in ['Rango Edad', '% sobre Total Periodo']}
+        total_row_edad_values['Rango Edad'] = 'Total'
+        total_row_edad_values['% sobre Total Periodo'] = '100.00%'
+        total_row_edad_df = pd.DataFrame([total_row_edad_values])
+        edad_table_with_total = pd.concat([edad_table_display, total_row_edad_df], ignore_index=True)
+        st.dataframe(edad_table_with_total)
+        generate_download_buttons(edad_table_with_total, f'distribucion_edad_{periodo_a_mostrar_edad}')
+        st.markdown('---')
+
+        st.subheader(f'Distribución por Rango de Antigüedad para {periodo_a_mostrar_edad}')
+        
+        # Layer 1: The stacked bars
+        bars_antiguedad = alt.Chart(df_periodo_edad).mark_bar().encode(
+            x=alt.X('Rango Antiguedad:N', sort=all_rangos_antiguedad),
+            y=alt.Y('count():Q', title='Cantidad'),
+            color='Relación:N',
+            tooltip=['count()', 'Relación']
+        )
+
+        # Layer 2: The total labels
+        total_labels_antiguedad = alt.Chart(df_periodo_edad).transform_aggregate(
+            total_count='count()',
+            groupby=['Rango Antiguedad']
+        ).mark_text(
+            dy=-8, # position above bar
+            align='center',
+            color='black'
+        ).encode(
+            x=alt.X('Rango Antiguedad:N', sort=all_rangos_antiguedad),
+            y=alt.Y('total_count:Q'),
+            text=alt.Text('total_count:Q')
+        )
+
+        chart_antiguedad_hist = (bars_antiguedad + total_labels_antiguedad).properties(title=f'Distribución por Antigüedad en {periodo_a_mostrar_edad}')
+        st.altair_chart(chart_antiguedad_hist, use_container_width=True)
+
+        antiguedad_table = df_periodo_edad.groupby(['Rango Antiguedad', 'Relación']).size().unstack(fill_value=0)
+        antiguedad_table['Total'] = antiguedad_table.sum(axis=1)
+        antiguedad_table['% sobre Total Periodo'] = (antiguedad_table['Total'] / total_empleados_periodo_edad * 100).map('{:.2f}%'.format) if total_empleados_periodo_edad > 0 else '0.00%'
+        antiguedad_table_display = antiguedad_table.reset_index()
+        total_row_ant_values = {col: antiguedad_table_display[col].sum() for col in antiguedad_table_display.columns if col not in ['Rango Antiguedad', '% sobre Total Periodo']}
+        total_row_ant_values['Rango Antiguedad'] = 'Total'
+        total_row_ant_values['% sobre Total Periodo'] = '100.00%'
+        total_row_ant_df = pd.DataFrame([total_row_ant_values])
+        antiguedad_table_with_total = pd.concat([antiguedad_table_display, total_row_ant_df], ignore_index=True)
+        st.dataframe(antiguedad_table_with_total)
+        generate_download_buttons(antiguedad_table_with_total, f'distribucion_antiguedad_{periodo_a_mostrar_edad}')
+
+# --- PESTAÑA 3: DESGLOSE (SIN CAMBIOS) ---
+with tab2:
+    st.header('Desglose Detallado por Categoría por Periodo')
+    if filtered_df.empty or not selected_periodos:
+        st.warning("No hay datos para mostrar con los filtros seleccionados.")
+    else:
+        # Creamos dos columnas para los selectores
+        col1, col2 = st.columns(2)
+
+        with col1:
+            periodo_a_mostrar_desglose = st.selectbox(
+                'Seleccionar Periodo:',
                 selected_periodos,
                 index=len(selected_periodos) - 1,
-                key='periodo_selector_edad'
+                key='periodo_selector_desglose'
             )
-            
-            df_periodo_edad = filtered_df[filtered_df['Periodo'] == periodo_a_mostrar_edad]
-            total_empleados_periodo_edad = len(df_periodo_edad)
-
-            st.subheader(f'Distribución por Rango de Edad para {periodo_a_mostrar_edad}')
-            
-            # Layer 1: The stacked bars
-            bars_edad = alt.Chart(df_periodo_edad).mark_bar().encode(
-                x=alt.X('Rango Edad:N', sort=all_rangos_edad),
-                y=alt.Y('count():Q', title='Cantidad'),
-                color='Relación:N',
-                tooltip=['count()', 'Relación']
+        
+        with col2:
+            categorias = ['Gerencia', 'Ministerio', 'Función', 'Distrito', 'Nivel']
+            cat_seleccionada = st.selectbox(
+                'Seleccionar Categoría:',
+                categorias,
+                key='cat_selector_desglose'
             )
 
-            # Layer 2: The total labels
-            total_labels_edad = alt.Chart(df_periodo_edad).transform_aggregate(
-                total_count='count()',
-                groupby=['Rango Edad']
-            ).mark_text(
-                dy=-8, # position above bar
-                align='center',
-                color='black'
-            ).encode(
-                x=alt.X('Rango Edad:N', sort=all_rangos_edad),
-                y=alt.Y('total_count:Q'),
-                text=alt.Text('total_count:Q')
-            )
+        df_periodo_desglose = filtered_df[filtered_df['Periodo'] == periodo_a_mostrar_desglose]
+        total_empleados_periodo_desglose = len(df_periodo_desglose)
 
-            chart_edad_hist = (bars_edad + total_labels_edad).properties(title=f'Distribución por Edad en {periodo_a_mostrar_edad}')
-            st.altair_chart(chart_edad_hist, use_container_width=True)
-            
-            edad_table = df_periodo_edad.groupby(['Rango Edad', 'Relación']).size().unstack(fill_value=0)
-            edad_table['Total'] = edad_table.sum(axis=1)
-            edad_table['% sobre Total Periodo'] = (edad_table['Total'] / total_empleados_periodo_edad * 100).map('{:.2f}%'.format) if total_empleados_periodo_edad > 0 else '0.00%'
-            edad_table_display = edad_table.reset_index()
-            total_row_edad_values = {col: edad_table_display[col].sum() for col in edad_table_display.columns if col not in ['Rango Edad', '% sobre Total Periodo']}
-            total_row_edad_values['Rango Edad'] = 'Total'
-            total_row_edad_values['% sobre Total Periodo'] = '100.00%'
-            total_row_edad_df = pd.DataFrame([total_row_edad_values])
-            edad_table_with_total = pd.concat([edad_table_display, total_row_edad_df], ignore_index=True)
-            st.dataframe(edad_table_with_total)
-            generate_download_buttons(edad_table_with_total, f'distribucion_edad_{periodo_a_mostrar_edad}')
-            st.markdown('---')
+        st.subheader(f'Dotación por {cat_seleccionada} para {periodo_a_mostrar_desglose}')
+        
+        # Gráfico ordenado de mayor a menor
+        chart = alt.Chart(df_periodo_desglose).mark_bar().encode(
+            x=alt.X(f'{cat_seleccionada}:N', sort='-y'), # '-y' ordena por el eje Y descendente
+            y=alt.Y('count():Q', title='Cantidad'),
+            color=f'{cat_seleccionada}:N',
+            tooltip=['count()', cat_seleccionada]
+        )
 
-            st.subheader(f'Distribución por Rango de Antigüedad para {periodo_a_mostrar_edad}')
-            
-            # Layer 1: The stacked bars
-            bars_antiguedad = alt.Chart(df_periodo_edad).mark_bar().encode(
-                x=alt.X('Rango Antiguedad:N', sort=all_rangos_antiguedad),
-                y=alt.Y('count():Q', title='Cantidad'),
-                color='Relación:N',
-                tooltip=['count()', 'Relación']
-            )
+        # Etiquetas de datos para el gráfico
+        text_labels = chart.mark_text(
+            align='center',
+            baseline='middle',
+            dy=-10 # Mueve la etiqueta un poco hacia arriba de la barra
+        ).encode(
+            text='count():Q'
+        )
 
-            # Layer 2: The total labels
-            total_labels_antiguedad = alt.Chart(df_periodo_edad).transform_aggregate(
-                total_count='count()',
-                groupby=['Rango Antiguedad']
-            ).mark_text(
-                dy=-8, # position above bar
-                align='center',
-                color='black'
-            ).encode(
-                x=alt.X('Rango Antiguedad:N', sort=all_rangos_antiguedad),
-                y=alt.Y('total_count:Q'),
-                text=alt.Text('total_count:Q')
-            )
-
-            chart_antiguedad_hist = (bars_antiguedad + total_labels_antiguedad).properties(title=f'Distribución por Antigüedad en {periodo_a_mostrar_edad}')
-            st.altair_chart(chart_antiguedad_hist, use_container_width=True)
-
-            antiguedad_table = df_periodo_edad.groupby(['Rango Antiguedad', 'Relación']).size().unstack(fill_value=0)
-            antiguedad_table['Total'] = antiguedad_table.sum(axis=1)
-            antiguedad_table['% sobre Total Periodo'] = (antiguedad_table['Total'] / total_empleados_periodo_edad * 100).map('{:.2f}%'.format) if total_empleados_periodo_edad > 0 else '0.00%'
-            antiguedad_table_display = antiguedad_table.reset_index()
-            total_row_ant_values = {col: antiguedad_table_display[col].sum() for col in antiguedad_table_display.columns if col not in ['Rango Antiguedad', '% sobre Total Periodo']}
-            total_row_ant_values['Rango Antiguedad'] = 'Total'
-            total_row_ant_values['% sobre Total Periodo'] = '100.00%'
-            total_row_ant_df = pd.DataFrame([total_row_ant_values])
-            antiguedad_table_with_total = pd.concat([antiguedad_table_display, total_row_ant_df], ignore_index=True)
-            st.dataframe(antiguedad_table_with_total)
-            generate_download_buttons(antiguedad_table_with_total, f'distribucion_antiguedad_{periodo_a_mostrar_edad}')
-
-    # --- PESTAÑA 3: DESGLOSE (SIN CAMBIOS) ---
-    with tab2:
-        st.header('Desglose Detallado por Categoría por Periodo')
-        if filtered_df.empty or not selected_periodos:
-            st.warning("No hay datos para mostrar con los filtros seleccionados.")
+        st.altair_chart(chart + text_labels, use_container_width=True)
+        
+        # Tabla de datos ordenada de mayor a menor
+        table_data = df_periodo_desglose.groupby(cat_seleccionada).size().reset_index(name='Cantidad')
+        table_data = table_data.sort_values('Cantidad', ascending=False) # Ordena la tabla
+        
+        if total_empleados_periodo_desglose > 0:
+            table_data['%'] = (table_data['Cantidad'] / total_empleados_periodo_desglose * 100).map('{:.2f}%'.format)
         else:
-            # Creamos dos columnas para los selectores
-            col1, col2 = st.columns(2)
+            table_data['%'] = '0.00%'
+        
+        total_row = pd.DataFrame({ 
+            cat_seleccionada: ['Total'], 
+            'Cantidad': [table_data['Cantidad'].sum()], 
+            '%': ['100.00%'] 
+        })
+        table_data_with_total = pd.concat([table_data, total_row], ignore_index=True)
+        
+        st.dataframe(table_data_with_total)
+        generate_download_buttons(table_data_with_total, f'dotacion_{cat_seleccionada.lower()}_{periodo_a_mostrar_desglose}')
 
-            with col1:
-                periodo_a_mostrar_desglose = st.selectbox(
-                    'Seleccionar Periodo:',
-                    selected_periodos,
-                    index=len(selected_periodos) - 1,
-                    key='periodo_selector_desglose'
-                )
-            
-            with col2:
-                categorias = ['Gerencia', 'Ministerio', 'Función', 'Distrito', 'Nivel']
-                cat_seleccionada = st.selectbox(
-                    'Seleccionar Categoría:',
-                    categorias,
-                    key='cat_selector_desglose'
-                )
-
-            df_periodo_desglose = filtered_df[filtered_df['Periodo'] == periodo_a_mostrar_desglose]
-            total_empleados_periodo_desglose = len(df_periodo_desglose)
-
-            st.subheader(f'Dotación por {cat_seleccionada} para {periodo_a_mostrar_desglose}')
-            
-            # Gráfico ordenado de mayor a menor
-            chart = alt.Chart(df_periodo_desglose).mark_bar().encode(
-                x=alt.X(f'{cat_seleccionada}:N', sort='-y'), # '-y' ordena por el eje Y descendente
-                y=alt.Y('count():Q', title='Cantidad'),
-                color=f'{cat_seleccionada}:N',
-                tooltip=['count()', cat_seleccionada]
-            )
-
-            # Etiquetas de datos para el gráfico
-            text_labels = chart.mark_text(
-                align='center',
-                baseline='middle',
-                dy=-10 # Mueve la etiqueta un poco hacia arriba de la barra
-            ).encode(
-                text='count():Q'
-            )
-
-            st.altair_chart(chart + text_labels, use_container_width=True)
-            
-            # Tabla de datos ordenada de mayor a menor
-            table_data = df_periodo_desglose.groupby(cat_seleccionada).size().reset_index(name='Cantidad')
-            table_data = table_data.sort_values('Cantidad', ascending=False) # Ordena la tabla
-            
-            if total_empleados_periodo_desglose > 0:
-                table_data['%'] = (table_data['Cantidad'] / total_empleados_periodo_desglose * 100).map('{:.2f}%'.format)
-            else:
-                table_data['%'] = '0.00%'
-            
-            total_row = pd.DataFrame({ 
-                cat_seleccionada: ['Total'], 
-                'Cantidad': [table_data['Cantidad'].sum()], 
-                '%': ['100.00%'] 
-            })
-            table_data_with_total = pd.concat([table_data, total_row], ignore_index=True)
-            
-            st.dataframe(table_data_with_total)
-            generate_download_buttons(table_data_with_total, f'dotacion_{cat_seleccionada.lower()}_{periodo_a_mostrar_desglose}')
-
-    # --- PESTAÑA 4: DATOS BRUTOS ---
-    with tab3:
-        st.header('Tabla de Datos Filtrados')
-        st.dataframe(filtered_df)
-        generate_download_buttons(filtered_df, 'datos_filtrados_dotacion')
-
-else:
-    st.info("⬆️ Esperando a que se suba un archivo Excel para comenzar el análisis.")
+# --- PESTAÑA 4: DATOS BRUTOS ---
+with tab3:
+    st.header('Tabla de Datos Filtrados')
+    st.dataframe(filtered_df)
+    generate_download_buttons(filtered_df, 'datos_filtrados_dotacion')
 
