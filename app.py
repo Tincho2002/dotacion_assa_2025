@@ -207,7 +207,7 @@ def get_sorted_unique_options(dataframe, column_name):
 
 
 # --- Cuerpo Principal de la Aplicación ---
-EXCEL_URL = 'https://raw.githubusercontent.com/Tinchoo2002/dotacion_assa_2025/main/Dotacion_25.xlsx'
+EXCEL_URL = 'https://raw.githubusercontent.com/Tincho2002/dotacion_assa_2025/main/Dotacion_25.xlsx'
 
 with st.spinner('Cargando datos desde GitHub...'):
     df = load_and_clean_data(EXCEL_URL)
@@ -604,4 +604,5 @@ with tab3:
     st.header('Tabla de Datos Filtrados')
     st.dataframe(filtered_df)
     generate_download_buttons(filtered_df, 'datos_filtrados_dotacion')
+
 
