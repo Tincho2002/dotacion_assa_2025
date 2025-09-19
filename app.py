@@ -63,6 +63,69 @@ div.stDownloadButton button:hover {
 .stMultiSelect div[data-baseweb="tag"] svg {
     fill: white !important; /* Color blanco para el icono 'x' */
 }
+
+/* Estilos para la nueva tarjeta de resumen */
+.summary-container {
+    display: flex;
+    background-color: white;
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+    align-items: center;
+    gap: 20px;
+    border: 1px solid #e0e0e0;
+}
+.summary-main-kpi {
+    text-align: center;
+    border-right: 2px solid #f0f2f6;
+    padding-right: 20px;
+    flex-grow: 1;
+}
+.summary-main-kpi .title {
+    font-size: 1.1rem;
+    font-weight: bold;
+    color: #2C3E50;
+    margin-bottom: 5px;
+}
+.summary-main-kpi .value {
+    font-size: 3.5rem;
+    font-weight: bold;
+    color: #2C3E50;
+}
+.summary-breakdown {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    flex-grow: 2;
+}
+.summary-row {
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+}
+.summary-sub-kpi {
+    text-align: left;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 200px; /* Ancho fijo para alineación */
+}
+.summary-sub-kpi .icon {
+    font-size: 2rem;
+}
+.summary-sub-kpi .details {
+    display: flex;
+    flex-direction: column;
+}
+.summary-sub-kpi .value {
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: #34495E;
+}
+.summary-sub-kpi .label {
+    font-size: 0.9rem;
+    color: #7F8C8D;
+}
 </style>
 """, unsafe_allow_html=True)
 
@@ -288,18 +351,59 @@ if not filtered_df.empty and selected_periodos:
             total_dotacion = len(df_latest_month)
             convenio_count = df_latest_month[df_latest_month['Relación'] == 'Convenio'].shape[0]
             fc_count = df_latest_month[df_latest_month['Relación'] == 'FC'].shape[0]
+            masculino_count = df_latest_month[df_latest_month['Sexo'] == 'Masculino'].shape[0]
+            femenino_count = df_latest_month[df_latest_month['Sexo'] == 'Femenino'].shape[0]
+            
+            # Calculo de porcentajes con seguridad para división por cero
+            convenio_pct = (convenio_count / total_dotacion * 100) if total_dotacion > 0 else 0
+            fc_pct = (fc_count / total_dotacion * 100) if total_dotacion > 0 else 0
+            masculino_pct = (masculino_count / total_dotacion * 100) if total_dotacion > 0 else 0
+            femenino_pct = (femenino_count / total_dotacion * 100) if total_dotacion > 0 else 0
 
-            with st.container(border=True):
-                st.markdown(f"<h4 style='text-align: center; color: #2C3E50;'>RESUMEN DOTACIÓN: {latest_period.upper()}</h4>", unsafe_allow_html=True)
-                
-                col1, col2, col3 = st.columns(3)
-                with col1:
-                    st.metric("Dotación Total", f"{total_dotacion}", help="Total de empleados para el último período seleccionado.")
-                with col2:
-                    st.metric("Convenio", f"{convenio_count}", help="Total de empleados bajo convenio.")
-                with col3:
-                    st.metric("Fuera de Convenio (FC)", f"{fc_count}", help="Total de empleados fuera de convenio.")
+            st.markdown(f"""
+            <div class="summary-container">
+                <div class="summary-main-kpi">
+                    <div class="title">DOTACIÓN {latest_period.upper()}</div>
+                    <div class="value">👥 {total_dotacion}</div>
+                </div>
+                <div class="summary-breakdown">
+                    <div class="summary-row">
+                        <div class="summary-sub-kpi">
+                            <div class="icon">📄</div>
+                            <div class="details">
+                                <div class="value">{convenio_count}</div>
+                                <div class="label">Convenio ({convenio_pct:.1f}%)</div>
+                            </div>
+                        </div>
+                        <div class="summary-sub-kpi">
+                            <div class="icon">💼</div>
+                            <div class="details">
+                                <div class="value">{fc_count}</div>
+                                <div class="label">Fuera de Convenio ({fc_pct:.1f}%)</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="summary-row">
+                        <div class="summary-sub-kpi">
+                            <div class="icon">👨</div>
+                            <div class="details">
+                                <div class="value">{masculino_count}</div>
+                                <div class="label">Masculino ({masculino_pct:.1f}%)</div>
+                            </div>
+                        </div>
+                        <div class="summary-sub-kpi">
+                            <div class="icon">👩</div>
+                            <div class="details">
+                                <div class="value">{femenino_count}</div>
+                                <div class="label">Femenino ({femenino_pct:.1f}%)</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
             st.markdown("<br>", unsafe_allow_html=True)
+
     except Exception as e:
         st.warning(f"No se pudo generar el resumen del último mes. Error: {e}")
 
