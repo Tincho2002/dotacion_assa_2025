@@ -126,6 +126,44 @@ div.stDownloadButton button:hover {
     font-size: 0.9rem;
     color: #7F8C8D;
 }
+
+/* Media Query for Responsive Summary Card */
+@media (max-width: 992px) {
+    .summary-container {
+        flex-direction: column;
+        align-items: stretch; /* Stretch items to full width */
+        gap: 25px;
+    }
+    .summary-main-kpi {
+        border-right: none;
+        padding-right: 0;
+        border-bottom: 2px solid #f0f2f6;
+        padding-bottom: 20px;
+    }
+    .summary-breakdown {
+        gap: 20px;
+    }
+    .summary-row {
+        flex-direction: column;
+        gap: 20px;
+        align-items: center;
+    }
+    .summary-sub-kpi {
+        width: 100%; /* Take full width */
+        justify-content: center; /* Center the content */
+    }
+}
+@media (max-width: 480px) {
+    .summary-main-kpi .value {
+        font-size: 2.8rem;
+    }
+    .summary-sub-kpi .value {
+        font-size: 1.3rem;
+    }
+    .summary-sub-kpi .icon {
+        font-size: 1.8rem;
+    }
+}
 </style>
 """, unsafe_allow_html=True)
 
