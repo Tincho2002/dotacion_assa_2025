@@ -274,6 +274,35 @@ else:
 st.write(f"Después de aplicar los filtros, se muestran **{len(filtered_df)}** registros.")
 st.markdown("---")
 
+# --- Resumen del Último Mes ---
+if not filtered_df.empty and selected_periodos:
+    try:
+        # Asegurar el orden correcto de los periodos para encontrar el último
+        periodos_ordenados = get_sorted_unique_options(df, 'Periodo')
+        periodos_seleccionados_ordenados = [p for p in periodos_ordenados if p in selected_periodos]
+        
+        if periodos_seleccionados_ordenados:
+            latest_period = periodos_seleccionados_ordenados[-1]
+            df_latest_month = filtered_df[filtered_df['Periodo'] == latest_period].copy()
+
+            total_dotacion = len(df_latest_month)
+            convenio_count = df_latest_month[df_latest_month['Relación'] == 'Convenio'].shape[0]
+            fc_count = df_latest_month[df_latest_month['Relación'] == 'FC'].shape[0]
+
+            with st.container(border=True):
+                st.markdown(f"<h4 style='text-align: center; color: #2C3E50;'>RESUMEN DOTACIÓN: {latest_period.upper()}</h4>", unsafe_allow_html=True)
+                
+                col1, col2, col3 = st.columns(3)
+                with col1:
+                    st.metric("Dotación Total", f"{total_dotacion}", help="Total de empleados para el último período seleccionado.")
+                with col2:
+                    st.metric("Convenio", f"{convenio_count}", help="Total de empleados bajo convenio.")
+                with col3:
+                    st.metric("Fuera de Convenio (FC)", f"{fc_count}", help="Total de empleados fuera de convenio.")
+            st.markdown("<br>", unsafe_allow_html=True)
+    except Exception as e:
+        st.warning(f"No se pudo generar el resumen del último mes. Error: {e}")
+
 # --- Pestañas de Visualización ---
 tab1, tab_edad_antiguedad, tab2, tab3 = st.tabs([
     "📊 Resumen de Dotación",
@@ -604,5 +633,4 @@ with tab3:
     st.header('Tabla de Datos Filtrados')
     st.dataframe(filtered_df)
     generate_download_buttons(filtered_df, 'datos_filtrados_dotacion')
-
 
